@@ -18,6 +18,7 @@
 | Enum type | snake_case, tunggal | `cycle_status`, `sales_channel` |
 | View | `v_<nama>` | `v_cycle_status` |
 | File migrasi | `NNNNNN_<kata kerja>_<objek>` | `000002_create_users_table` |
+| Trigger | `trg_<tabel>_<aksi>` | `trg_users_set_updated_at` |
 
 ## Tipe data
 - Waktu kejadian: `TIMESTAMPTZ`; tanggal log: `DATE`
@@ -30,3 +31,4 @@
 - Satu migrasi = satu perubahan
 - Selalu tulis file `.down.sql` dan uji `up → down → up`
 - Migrasi yang sudah jalan di Railway tidak boleh diedit; buat migrasi baru
+
