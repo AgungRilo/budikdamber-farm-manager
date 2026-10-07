@@ -1,0 +1,16 @@
+name: budikdamber
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: budikdamber-db
+    environment:
+      POSTGRES_USER: budikdamber
+      POSTGRES_PASSWORD: budikdamber
+      POSTGRES_DB: budikdamber_dev
+    ports:
+      - "5433:5432"   # ganti ke "5433:5433" kalau port 5433 sudah dipakai
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

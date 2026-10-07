@@ -1,0 +1,40 @@
+# Environment
+.env
+.env.example
+.env.local
+.env.*.local
+
+# Binaries
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+budikdamber-farm-manager
+
+# Test
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Dependency directories
+vendor/
+
+# Build
+/build/
+/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
