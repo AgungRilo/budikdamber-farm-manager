@@ -70,7 +70,7 @@ migrate-version:
 
 ## migrate-up-prod: Menjalankan migration ke database Railway
 migrate-up-prod:
-	migrate -path $(MIGRATION_PATH) -database "$(RAILWAY_DATABASE_URL)" up
+	migrate -path $(MIGRATION_PATH) -database "$(PROD_DATABASE_URL)" up
 
 ## migrate-force: Force versi migration (make migrate-force v=1)
 migrate-force:
@@ -83,3 +83,11 @@ migrate-drop:
 ## clean: Menghapus hasil build
 clean:
 	rm -rf $(BIN_DIR)
+
+## seed: Membuat akun owner pertama
+seed:
+	go run ./cmd/seed
+
+## seed-prod: Membuat akun owner di database production
+seed-prod:
+	DATABASE_URL="$(PROD_DATABASE_URL)" SEED_OWNER_PASSWORD="$(PROD_SEED_OWNER_PASSWORD)" go run ./cmd/seed
