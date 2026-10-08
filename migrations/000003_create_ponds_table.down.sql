@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS ponds;
+DROP TYPE IF EXISTS pond_type;
