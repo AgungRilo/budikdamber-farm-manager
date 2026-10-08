@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/AgungRilo/budikdamber-farm-manager/internal/response"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -26,9 +27,13 @@ func (h *HealthHandler) Check(c *gin.Context) {
 		status, dbStatus, code = "degraded", "down", http.StatusServiceUnavailable
 	}
 
-	c.JSON(code, gin.H{
-		"status":   status,
-		"database": dbStatus,
-		"time":     time.Now().UTC(),
+	c.JSON(code, response.Body{
+		Success: status == "ok",
+		Message: "health check",
+		Data: gin.H{
+			"status":   status,
+			"database": dbStatus,
+			"time":     time.Now().UTC(),
+		},
 	})
 }

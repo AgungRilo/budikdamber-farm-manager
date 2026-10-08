@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/auth"
+	"github.com/AgungRilo/budikdamber-farm-manager/internal/response"
 )
 
 const (
@@ -18,13 +19,13 @@ func AuthRequired(jm *auth.JWTManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr, ok := strings.CutPrefix(c.GetHeader("Authorization"), "Bearer ")
 		if !ok || tokenStr == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token tidak ditemukan"})
+			response.Abort(c, http.StatusUnauthorized, "token tidak ditemukan")
 			return
 		}
 
 		claims, err := jm.Parse(tokenStr)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token tidak valid atau kedaluwarsa"})
+			response.Abort(c, http.StatusUnauthorized, "token tidak valid atau kedaluwarsa")
 			return
 		}
 

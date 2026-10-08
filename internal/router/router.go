@@ -9,12 +9,14 @@ import (
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/handler"
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/middleware"
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/repository"
+	"github.com/AgungRilo/budikdamber-farm-manager/internal/response"
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/service"
 )
 
 func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
+		response.UseJSONFieldNames()
 	}
 
 	r := gin.New()
@@ -35,6 +37,9 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 
 	// Butuh login
 	protected := api.Group("", middleware.AuthRequired(jwtManager))
+	// Khusus owner (dipakai mulai CRUD master & users)
+	ownerOnly := protected.Group("", middleware.RequireRoles(middleware.RoleOwner))
+	_ = ownerOnly
 	protected.GET("/auth/me", authH.Me)
 
 	return r

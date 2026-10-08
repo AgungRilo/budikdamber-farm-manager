@@ -9,6 +9,7 @@ import (
 
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/middleware"
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/repository"
+	"github.com/AgungRilo/budikdamber-farm-manager/internal/response"
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/service"
 )
 
@@ -28,21 +29,21 @@ type loginRequest struct {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req loginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "email (format valid) dan password wajib diisi"})
+		response.ValidationError(c, err)
 		return
 	}
 
 	res, err := h.svc.Login(c.Request.Context(), req.Email, req.Password)
 	switch {
 	case errors.Is(err, service.ErrInvalidCredentials):
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusUnauthorized, err.Error())
 	case errors.Is(err, service.ErrUserInactive):
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusForbidden, err.Error())
 	case err != nil:
 		log.Printf("login error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "terjadi kesalahan server"})
+		response.Error(c, http.StatusInternalServerError, "terjadi kesalahan server")
 	default:
-		c.JSON(http.StatusOK, res)
+		response.OK(c, "login berhasil", res)
 	}
 }
 
@@ -50,13 +51,13 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	u, err := h.svc.Me(c.Request.Context(), c.GetInt64(middleware.CtxUserID))
 	switch {
 	case errors.Is(err, repository.ErrNotFound):
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user tidak ditemukan"})
+		response.Error(c, http.StatusUnauthorized, "user tidak ditemukan")
 	case err != nil:
 		log.Printf("me error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "terjadi kesalahan server"})
+		response.Error(c, http.StatusInternalServerError, "terjadi kesalahan server")
 	case !u.IsActive:
-		c.JSON(http.StatusForbidden, gin.H{"error": "akun dinonaktifkan"})
+		response.Error(c, http.StatusForbidden, "akun dinonaktifkan")
 	default:
-		c.JSON(http.StatusOK, u)
+		response.OK(c, "berhasil mengambil profil", u)
 	}
 }
