@@ -26,7 +26,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           router.New(db, cfg.AppEnv),
+		Handler:           router.New(db, cfg),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
