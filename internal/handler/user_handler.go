@@ -170,3 +170,27 @@ func (h *UserHandler) SetStatus(c *gin.Context) {
 	}
 	response.OK(c, msg, u)
 }
+
+// Register godoc
+// @Summary   Daftar akun baru (publik, menunggu persetujuan owner)
+// @Tags      Auth
+// @Accept    json
+// @Produce   json
+// @Param     body  body      model.RegisterInput  true  "Data pendaftaran"
+// @Success   201   {object}  response.Body{data=model.User}
+// @Failure   400   {object}  response.Body
+// @Failure   409   {object}  response.Body
+// @Router    /users/register [post]
+func (h *UserHandler) Register(c *gin.Context) {
+	var in model.RegisterInput
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+	u, err := h.svc.Register(c.Request.Context(), in)
+	if err != nil {
+		userError(c, err)
+		return
+	}
+	response.Created(c, "pendaftaran berhasil, akun menunggu aktivasi dari owner", u)
+}

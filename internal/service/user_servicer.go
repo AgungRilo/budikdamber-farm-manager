@@ -68,3 +68,15 @@ func (s *UserService) SetActive(ctx context.Context, actorID, id int64, active b
 	}
 	return s.repo.SetActive(ctx, id, active)
 }
+
+// Register: pendaftaran mandiri. Role selalu worker, status nonaktif.
+func (s *UserService) Register(ctx context.Context, in model.RegisterInput) (*model.User, error) {
+	name := strings.TrimSpace(in.Name)
+	email := strings.ToLower(strings.TrimSpace(in.Email))
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.Register(ctx, name, email, string(hash))
+}

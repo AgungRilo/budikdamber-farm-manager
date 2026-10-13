@@ -137,3 +137,16 @@ func (r *UserRepository) SetActive(ctx context.Context, id int64, active bool) (
 	}
 	return &u, nil
 }
+
+// Register membuat akun worker nonaktif (menunggu persetujuan owner).
+func (r *UserRepository) Register(ctx context.Context, name, email, passwordHash string) (*model.User, error) {
+	u, err := scanUser(r.db.QueryRow(ctx, `
+		INSERT INTO users (name, email, password_hash, role, is_active)
+		VALUES ($1, $2, $3, 'worker', false)
+		RETURNING `+userColumns,
+		name, email, passwordHash))
+	if err != nil {
+		return nil, translatePgError(err)
+	}
+	return &u, nil
+}

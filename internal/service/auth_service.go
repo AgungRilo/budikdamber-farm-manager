@@ -15,7 +15,7 @@ import (
 
 var (
 	ErrInvalidCredentials = errors.New("email atau password salah")
-	ErrUserInactive       = errors.New("akun dinonaktifkan")
+	ErrUserInactive       = errors.New("akun nonaktif atau belum diaktifkan owner")
 )
 
 type LoginResult struct {

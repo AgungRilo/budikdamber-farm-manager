@@ -192,6 +192,23 @@ definitions:
     - name
     - type
     type: object
+  model.RegisterInput:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      name:
+        maxLength: 100
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
   model.User:
     properties:
       created_at:
@@ -1171,6 +1188,40 @@ paths:
           schema:
             $ref: '#/definitions/response.Body'
       summary: Login
+      tags:
+      - Auth
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Data pendaftaran
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.User'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      summary: Daftar akun baru (publik, menunggu persetujuan owner)
       tags:
       - Auth
 securityDefinitions:
