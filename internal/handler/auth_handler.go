@@ -21,13 +21,25 @@ func NewAuthHandler(svc *service.AuthService) *AuthHandler {
 	return &AuthHandler{svc: svc}
 }
 
-type loginRequest struct {
+type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 }
 
+// Login godoc
+// @Summary      Login
+// @Description  Login dengan email & password, mengembalikan JWT.
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body      LoginRequest  true  "Kredensial"
+// @Success      200   {object}  response.Body{data=service.LoginResult}
+// @Failure      400   {object}  response.Body
+// @Failure      401   {object}  response.Body
+// @Failure      403   {object}  response.Body
+// @Router       /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req loginRequest
+	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err)
 		return
@@ -47,6 +59,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 }
 
+// Me godoc
+// @Summary   Profil user yang sedang login
+// @Tags      Auth
+// @Produce   json
+// @Security  BearerAuth
+// @Success   200  {object}  response.Body{data=model.User}
+// @Failure   401  {object}  response.Body
+// @Router    /auth/me [get]
 func (h *AuthHandler) Me(c *gin.Context) {
 	u, err := h.svc.Me(c.Request.Context(), c.GetInt64(middleware.CtxUserID))
 	switch {

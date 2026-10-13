@@ -15,6 +15,16 @@ import (
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/router"
 )
 
+// @title           Budikdamber Farm Manager API
+// @version         1.0
+// @description     Backend API manajemen budidaya ikan rumahan: siklus, log pakan & kematian, penjualan, dan laporan laba.
+// @BasePath        /api/v1
+//
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Ketik: Bearer <token>   (token didapat dari /auth/login)
+
 func main() {
 	cfg := config.Load()
 

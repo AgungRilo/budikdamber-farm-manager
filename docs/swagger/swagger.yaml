@@ -1,0 +1,421 @@
+basePath: /api/v1
+definitions:
+  handler.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  model.Pond:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      max_stock:
+        type: integer
+      name:
+        type: string
+      notes:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+      volume_liter:
+        type: integer
+    type: object
+  model.PondInput:
+    properties:
+      is_active:
+        type: boolean
+      max_stock:
+        type: integer
+      name:
+        maxLength: 100
+        type: string
+      notes:
+        maxLength: 500
+        type: string
+      type:
+        enum:
+        - ember
+        - terpal
+        - kolam_tanah
+        - kolam_beton
+        type: string
+      volume_liter:
+        type: integer
+    required:
+    - max_stock
+    - name
+    - type
+    type: object
+  model.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  model.UserStatusInput:
+    properties:
+      is_active:
+        type: boolean
+    required:
+    - is_active
+    type: object
+  response.Body:
+    properties:
+      data: {}
+      errors: {}
+      message:
+        type: string
+      meta:
+        $ref: '#/definitions/response.Meta'
+      success:
+        type: boolean
+    type: object
+  response.Meta:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  service.LoginResult:
+    properties:
+      expires_at:
+        type: string
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/model.User'
+    type: object
+info:
+  contact: {}
+  description: 'Backend API manajemen budidaya ikan rumahan: siklus, log pakan & kematian,
+    penjualan, dan laporan laba.'
+  title: Budikdamber Farm Manager API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login dengan email & password, mengembalikan JWT.
+      parameters:
+      - description: Kredensial
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/service.LoginResult'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Body'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Body'
+      summary: Login
+      tags:
+      - Auth
+  /auth/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.User'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Profil user yang sedang login
+      tags:
+      - Auth
+  /ponds:
+    get:
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: Cari berdasarkan nama
+        in: query
+        name: search
+        type: string
+      - description: Jenis wadah
+        enum:
+        - ember
+        - terpal
+        - kolam_tanah
+        - kolam_beton
+        in: query
+        name: type
+        type: string
+      - description: Status aktif
+        in: query
+        name: is_active
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Pond'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Daftar wadah
+      tags:
+      - Ponds
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Data wadah
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.PondInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Pond'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Buat wadah (owner)
+      tags:
+      - Ponds
+  /ponds/{id}:
+    delete:
+      parameters:
+      - description: ID wadah
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Hapus wadah / soft delete (owner)
+      tags:
+      - Ponds
+    get:
+      parameters:
+      - description: ID wadah
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Pond'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Detail wadah
+      tags:
+      - Ponds
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID wadah
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data wadah
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.PondInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Pond'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Ubah wadah (owner)
+      tags:
+      - Ponds
+  /users/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID user
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserStatusInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.User'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Aktifkan / nonaktifkan user (owner)
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: 'Ketik: Bearer <token>   (token didapat dari /auth/login)'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -94,6 +94,18 @@ func (h *UserHandler) Update(c *gin.Context) {
 	response.OK(c, "user berhasil diperbarui", u)
 }
 
+// SetStatus godoc
+// @Summary   Aktifkan / nonaktifkan user (owner)
+// @Tags      Users
+// @Accept    json
+// @Produce   json
+// @Security  BearerAuth
+// @Param     id    path      int                    true  "ID user"
+// @Param     body  body      model.UserStatusInput  true  "Status"
+// @Success   200   {object}  response.Body{data=model.User}
+// @Failure   400   {object}  response.Body
+// @Failure   404   {object}  response.Body
+// @Router    /users/{id}/status [patch]
 func (h *UserHandler) SetStatus(c *gin.Context) {
 	id, ok := parseID(c)
 	if !ok {

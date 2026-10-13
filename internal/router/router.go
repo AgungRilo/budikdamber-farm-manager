@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	_ "github.com/AgungRilo/budikdamber-farm-manager/docs/swagger"
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/auth"
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/config"
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/handler"
@@ -11,6 +12,8 @@ import (
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/repository"
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/response"
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/service"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
@@ -35,6 +38,7 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	authH := handler.NewAuthHandler(authSvc)
 
 	// Public
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/health", healthH.Check)
 	api := r.Group("/api/v1")
 	api.POST("/auth/login", authH.Login)

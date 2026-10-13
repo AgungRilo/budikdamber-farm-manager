@@ -91,3 +91,7 @@ seed:
 ## seed-prod: Membuat akun owner di database production
 seed-prod:
 	DATABASE_URL="$(PROD_DATABASE_URL)" SEED_OWNER_PASSWORD="$(PROD_SEED_OWNER_PASSWORD)" go run ./cmd/seed
+
+## swag: Generate dokumentasi Swagger
+swag:
+	swag init -g cmd/main.go -o docs/swagger
