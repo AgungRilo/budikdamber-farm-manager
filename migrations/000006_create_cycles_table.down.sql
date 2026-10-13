@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS cycles;
+DROP TYPE IF EXISTS cycle_status;

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -23,4 +24,21 @@ func translatePgError(err error) error {
 		}
 	}
 	return err
+}
+
+var (
+	ErrPondUnavailable = errors.New("wadah tidak ditemukan atau tidak aktif")
+	ErrSpeciesNotFound = errors.New("jenis ikan tidak ditemukan")
+)
+
+// CapacityError dikembalikan saat tebar melebihi kapasitas wadah (R01).
+type CapacityError struct {
+	MaxStock  int   `json:"max_stock"`
+	Used      int64 `json:"used"`
+	Remaining int64 `json:"remaining"`
+}
+
+func (e *CapacityError) Error() string {
+	return fmt.Sprintf("kapasitas wadah tidak cukup: maksimal %d ekor, terisi %d, sisa %d",
+		e.MaxStock, e.Used, e.Remaining)
 }

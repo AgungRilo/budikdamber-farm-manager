@@ -10,6 +10,141 @@ definitions:
     - email
     - password
     type: object
+  model.Cycle:
+    properties:
+      age_days:
+        type: integer
+      alive_qty:
+        type: integer
+      code:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: integer
+      dead_qty:
+        type: integer
+      end_date:
+        type: string
+      id:
+        type: integer
+      initial_qty:
+        type: integer
+      notes:
+        type: string
+      pond_id:
+        type: integer
+      pond_name:
+        type: string
+      seed_price_per_fish:
+        type: integer
+      seed_size_cm:
+        type: number
+      sold_qty:
+        type: integer
+      species_id:
+        type: integer
+      species_name:
+        type: string
+      start_date:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  model.CycleInput:
+    properties:
+      initial_qty:
+        type: integer
+      notes:
+        maxLength: 500
+        type: string
+      pond_id:
+        type: integer
+      seed_price_per_fish:
+        minimum: 0
+        type: integer
+      seed_size_cm:
+        type: number
+      species_id:
+        type: integer
+      start_date:
+        type: string
+    required:
+    - initial_qty
+    - pond_id
+    - species_id
+    - start_date
+    type: object
+  model.Feed:
+    properties:
+      brand:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price_per_kg:
+        type: integer
+      protein_pct:
+        type: number
+      updated_at:
+        type: string
+    type: object
+  model.FeedInput:
+    properties:
+      brand:
+        maxLength: 100
+        type: string
+      name:
+        maxLength: 100
+        type: string
+      price_per_kg:
+        type: integer
+      protein_pct:
+        maximum: 100
+        minimum: 0
+        type: number
+    required:
+    - name
+    - price_per_kg
+    type: object
+  model.FishSpecies:
+    properties:
+      created_at:
+        type: string
+      default_price_per_fish:
+        type: integer
+      default_price_per_kg:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+      target_days:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  model.FishSpeciesInput:
+    properties:
+      default_price_per_fish:
+        minimum: 0
+        type: integer
+      default_price_per_kg:
+        minimum: 0
+        type: integer
+      name:
+        maxLength: 100
+        type: string
+      target_days:
+        type: integer
+    required:
+    - name
+    type: object
   model.Pond:
     properties:
       created_at:
@@ -181,6 +316,441 @@ paths:
       summary: Profil user yang sedang login
       tags:
       - Auth
+  /cycles:
+    get:
+      parameters:
+      - description: Status
+        enum:
+        - active
+        - closed
+        in: query
+        name: status
+        type: string
+      - description: Filter wadah
+        in: query
+        name: pond_id
+        type: integer
+      - description: Filter jenis ikan
+        in: query
+        name: species_id
+        type: integer
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Cycle'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Daftar siklus budidaya
+      tags:
+      - Cycles
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Data siklus
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CycleInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Cycle'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Kapasitas wadah tidak cukup
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Mulai siklus baru / tebar bibit (owner)
+      tags:
+      - Cycles
+  /cycles/{id}:
+    get:
+      parameters:
+      - description: ID siklus
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Cycle'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Detail siklus (termasuk jumlah hidup, mati, terjual)
+      tags:
+      - Cycles
+  /feeds:
+    get:
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: Cari nama / merek
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Feed'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Daftar pakan
+      tags:
+      - Feeds
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Data pakan
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.FeedInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Feed'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Buat pakan (owner)
+      tags:
+      - Feeds
+  /feeds/{id}:
+    delete:
+      parameters:
+      - description: ID pakan
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Hapus pakan / soft delete (owner)
+      tags:
+      - Feeds
+    get:
+      parameters:
+      - description: ID pakan
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Feed'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Detail pakan
+      tags:
+      - Feeds
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID pakan
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data pakan
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.FeedInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Feed'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Ubah pakan (owner)
+      tags:
+      - Feeds
+  /fish-species:
+    get:
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: Cari nama
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.FishSpecies'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Daftar jenis ikan
+      tags:
+      - Fish Species
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Data jenis ikan
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.FishSpeciesInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.FishSpecies'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Buat jenis ikan (owner)
+      tags:
+      - Fish Species
+  /fish-species/{id}:
+    delete:
+      parameters:
+      - description: ID jenis ikan
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Hapus jenis ikan / soft delete (owner)
+      tags:
+      - Fish Species
+    get:
+      parameters:
+      - description: ID jenis ikan
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.FishSpecies'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Detail jenis ikan
+      tags:
+      - Fish Species
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID jenis ikan
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data jenis ikan
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.FishSpeciesInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.FishSpecies'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Ubah jenis ikan (owner)
+      tags:
+      - Fish Species
   /ponds:
     get:
       parameters:

@@ -33,7 +33,9 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	pondSvc := service.NewPondService(pondRepo)
 	pondH := handler.NewPondHandler(pondSvc)
 	userH := handler.NewUserHandler(service.NewUserService(userRepo))
-
+	cycleH := handler.NewCycleHandler(service.NewCycleService(repository.NewCycleRepository(db)))
+	speciesH := handler.NewFishSpeciesHandler(service.NewFishSpeciesService(repository.NewFishSpeciesRepository(db)))
+	feedH := handler.NewFeedHandler(service.NewFeedService(repository.NewFeedRepository(db)))
 	healthH := handler.NewHealthHandler(db)
 	authH := handler.NewAuthHandler(authSvc)
 
@@ -60,6 +62,25 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	ownerOnly.POST("/users", userH.Create)
 	ownerOnly.PUT("/users/:id", userH.Update)
 	ownerOnly.PATCH("/users/:id/status", userH.SetStatus)
+
+	// Siklus: semua role bisa melihat, owner yang membuat
+	protected.GET("/cycles", cycleH.List)
+	protected.GET("/cycles/:id", cycleH.Get)
+	ownerOnly.POST("/cycles", cycleH.Create)
+
+	// fish species
+	protected.GET("/fish-species", speciesH.List)
+	protected.GET("/fish-species/:id", speciesH.Get)
+	ownerOnly.POST("/fish-species", speciesH.Create)
+	ownerOnly.PUT("/fish-species/:id", speciesH.Update)
+	ownerOnly.DELETE("/fish-species/:id", speciesH.Delete)
+
+	// feeds
+	protected.GET("/feeds", feedH.List)
+	protected.GET("/feeds/:id", feedH.Get)
+	ownerOnly.POST("/feeds", feedH.Create)
+	ownerOnly.PUT("/feeds/:id", feedH.Update)
+	ownerOnly.DELETE("/feeds/:id", feedH.Delete)
 
 	return r
 }

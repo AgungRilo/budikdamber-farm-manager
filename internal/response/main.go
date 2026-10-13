@@ -106,6 +106,8 @@ func fieldMessage(fe validator.FieldError) string {
 		return fmt.Sprintf("minimal %s", fe.Param())
 	case "oneof":
 		return fmt.Sprintf("harus salah satu dari: %s", strings.ReplaceAll(fe.Param(), " ", ", "))
+	case "datetime":
+		return "format tanggal harus YYYY-MM-DD"
 	default:
 		return "tidak valid"
 	}
