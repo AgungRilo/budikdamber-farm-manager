@@ -299,45 +299,6 @@ info:
   title: Budikdamber Farm Manager API
   version: "1.0"
 paths:
-  /auth/login:
-    post:
-      consumes:
-      - application/json
-      description: Login dengan email & password, mengembalikan JWT.
-      parameters:
-      - description: Kredensial
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/handler.LoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.Body'
-            - properties:
-                data:
-                  $ref: '#/definitions/service.LoginResult'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.Body'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/response.Body'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/response.Body'
-      summary: Login
-      tags:
-      - Auth
   /auth/me:
     get:
       produces:
