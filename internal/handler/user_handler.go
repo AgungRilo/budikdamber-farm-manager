@@ -33,6 +33,17 @@ func userError(c *gin.Context, err error) {
 	}
 }
 
+// List godoc
+// @Summary   Daftar user (owner)
+// @Tags      Users
+// @Produce   json
+// @Security  BearerAuth
+// @Param     page    query  int     false  "Halaman"  default(1)
+// @Param     limit   query  int     false  "Jumlah per halaman"  default(10)
+// @Param     search  query  string  false  "Cari nama / email"
+// @Success   200  {object}  response.Body{data=[]model.User,meta=response.Meta}
+// @Failure   403  {object}  response.Body
+// @Router    /users [get]
 func (h *UserHandler) List(c *gin.Context) {
 	f := model.UserFilter{
 		Search:   c.Query("search"),
@@ -49,6 +60,15 @@ func (h *UserHandler) List(c *gin.Context) {
 	response.Paginated(c, "berhasil mengambil daftar user", users, response.NewMeta(f.Page, f.Limit, total))
 }
 
+// Get godoc
+// @Summary   Detail user (owner)
+// @Tags      Users
+// @Produce   json
+// @Security  BearerAuth
+// @Param     id   path      int  true  "ID user"
+// @Success   200  {object}  response.Body{data=model.User}
+// @Failure   404  {object}  response.Body
+// @Router    /users/{id} [get]
 func (h *UserHandler) Get(c *gin.Context) {
 	id, ok := parseID(c)
 	if !ok {
@@ -62,6 +82,17 @@ func (h *UserHandler) Get(c *gin.Context) {
 	response.OK(c, "berhasil mengambil detail user", u)
 }
 
+// Create godoc
+// @Summary   Buat user (owner)
+// @Tags      Users
+// @Accept    json
+// @Produce   json
+// @Security  BearerAuth
+// @Param     body  body      model.UserCreateInput  true  "Data user"
+// @Success   201   {object}  response.Body{data=model.User}
+// @Failure   400   {object}  response.Body
+// @Failure   409   {object}  response.Body
+// @Router    /users [post]
 func (h *UserHandler) Create(c *gin.Context) {
 	var in model.UserCreateInput
 	if err := c.ShouldBindJSON(&in); err != nil {
@@ -76,6 +107,18 @@ func (h *UserHandler) Create(c *gin.Context) {
 	response.Created(c, "user berhasil dibuat", u)
 }
 
+// Update godoc
+// @Summary   Ubah user (owner)
+// @Tags      Users
+// @Accept    json
+// @Produce   json
+// @Security  BearerAuth
+// @Param     id    path      int                    true  "ID user"
+// @Param     body  body      model.UserUpdateInput  true  "Data user"
+// @Success   200   {object}  response.Body{data=model.User}
+// @Failure   400   {object}  response.Body
+// @Failure   404   {object}  response.Body
+// @Router    /users/{id} [put]
 func (h *UserHandler) Update(c *gin.Context) {
 	id, ok := parseID(c)
 	if !ok {

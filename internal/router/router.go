@@ -45,6 +45,10 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	api := r.Group("/api/v1")
 	api.POST("/auth/login", authH.Login)
 
+	// alias sesuai ketentuan final project
+	r.POST("/api/users/login", authH.Login)
+	api.POST("/users/login", authH.Login)
+
 	// Butuh login
 	protected := api.Group("", middleware.AuthRequired(jwtManager))
 	// Khusus owner (dipakai mulai CRUD master & users)
