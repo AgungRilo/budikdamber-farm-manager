@@ -29,6 +29,7 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	pondRepo := repository.NewPondRepository(db)
 	pondSvc := service.NewPondService(pondRepo)
 	pondH := handler.NewPondHandler(pondSvc)
+	userH := handler.NewUserHandler(service.NewUserService(userRepo))
 
 	healthH := handler.NewHealthHandler(db)
 	authH := handler.NewAuthHandler(authSvc)
@@ -48,6 +49,13 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	ownerOnly.PUT("/ponds/:id", pondH.Update)
 	ownerOnly.DELETE("/ponds/:id", pondH.Delete)
 	protected.GET("/auth/me", authH.Me)
+
+	// Users (khusus owner)
+	ownerOnly.GET("/users", userH.List)
+	ownerOnly.GET("/users/:id", userH.Get)
+	ownerOnly.POST("/users", userH.Create)
+	ownerOnly.PUT("/users/:id", userH.Update)
+	ownerOnly.PATCH("/users/:id/status", userH.SetStatus)
 
 	return r
 }
