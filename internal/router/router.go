@@ -26,6 +26,9 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	jwtManager := auth.NewJWTManager(cfg.JWTSecret, cfg.JWTExpiresIn)
 	userRepo := repository.NewUserRepository(db)
 	authSvc := service.NewAuthService(userRepo, jwtManager)
+	pondRepo := repository.NewPondRepository(db)
+	pondSvc := service.NewPondService(pondRepo)
+	pondH := handler.NewPondHandler(pondSvc)
 
 	healthH := handler.NewHealthHandler(db)
 	authH := handler.NewAuthHandler(authSvc)
@@ -39,7 +42,11 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	protected := api.Group("", middleware.AuthRequired(jwtManager))
 	// Khusus owner (dipakai mulai CRUD master & users)
 	ownerOnly := protected.Group("", middleware.RequireRoles(middleware.RoleOwner))
-	_ = ownerOnly
+	protected.GET("/ponds", pondH.List)
+	protected.GET("/ponds/:id", pondH.Get)
+	ownerOnly.POST("/ponds", pondH.Create)
+	ownerOnly.PUT("/ponds/:id", pondH.Update)
+	ownerOnly.DELETE("/ponds/:id", pondH.Delete)
 	protected.GET("/auth/me", authH.Me)
 
 	return r
