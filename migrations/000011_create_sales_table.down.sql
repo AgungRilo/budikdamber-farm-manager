@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS sales;
+DROP TYPE IF EXISTS sale_channel;
+DROP TYPE IF EXISTS sale_type;

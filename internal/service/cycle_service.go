@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"time"
 
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/model"
 	"github.com/AgungRilo/budikdamber-farm-manager/internal/repository"
@@ -29,8 +28,11 @@ func (s *CycleService) Get(ctx context.Context, id int64) (*model.Cycle, error) 
 }
 
 func (s *CycleService) Create(ctx context.Context, in model.CycleInput, createdBy int64) (*model.Cycle, error) {
-	start, _ := time.Parse("2006-01-02", in.StartDate) // format sudah divalidasi di handler
-	if start.After(time.Now()) {
+	// start, _ := time.Parse("2006-01-02", in.StartDate) // format sudah divalidasi di handler
+	// if start.After(time.Now()) {
+	// 	return nil, ErrStartDateInFuture
+	// }
+	if isFutureDate(in.StartDate) {
 		return nil, ErrStartDateInFuture
 	}
 	if in.Notes != nil {
@@ -38,4 +40,18 @@ func (s *CycleService) Create(ctx context.Context, in model.CycleInput, createdB
 		in.Notes = &n
 	}
 	return s.repo.Create(ctx, in, createdBy)
+}
+
+func (s *CycleService) Close(ctx context.Context, id int64, in model.CycleCloseInput, closedBy int64) (*model.Cycle, error) {
+	if in.EndDate == "" {
+		in.EndDate = todayWIB()
+	}
+	if isFutureDate(in.EndDate) {
+		return nil, ErrLogDateInFuture
+	}
+	return s.repo.Close(ctx, id, in.EndDate, closedBy)
+}
+
+func (s *CycleService) Reopen(ctx context.Context, id int64) (*model.Cycle, error) {
+	return s.repo.Reopen(ctx, id)
 }

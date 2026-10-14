@@ -42,3 +42,7 @@ type CycleFilter struct {
 	Page      int
 	Limit     int
 }
+
+type CycleCloseInput struct {
+	EndDate string `json:"end_date" binding:"omitempty,datetime=2006-01-02"`
+}

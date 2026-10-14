@@ -115,12 +115,18 @@ func (r *MortalityLogRepository) Create(ctx context.Context, cycleID int64, in m
 	remaining := alive - int64(in.Qty)
 	closed := false
 	if remaining == 0 {
-		if _, err := tx.Exec(ctx,
-			`UPDATE cycles SET status = 'closed', end_date = $2::date WHERE id = $1`,
-			cycleID, in.LogDate); err != nil {
-			return nil, err
+		// if _, err := tx.Exec(ctx,
+		// 	`UPDATE cycles SET status = 'closed', end_date = $2::date WHERE id = $1`,
+		// 	cycleID, in.LogDate); err != nil {
+		// 	return nil, err
+		// }
+		// closed = true
+		if remaining == 0 {
+			if err := closeCycle(ctx, tx, cycleID, in.LogDate, createdBy); err != nil {
+				return nil, err
+			}
+			closed = true
 		}
-		closed = true
 	}
 
 	if err := tx.Commit(ctx); err != nil {

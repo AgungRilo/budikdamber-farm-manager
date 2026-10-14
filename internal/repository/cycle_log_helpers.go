@@ -48,3 +48,12 @@ func nilIfEmpty(s string) *string {
 	}
 	return &s
 }
+
+// closeCycle menutup siklus dan mencatat siapa yang menutup (R05).
+// Wajib dipanggil di dalam transaksi yang sudah mengunci baris siklus.
+func closeCycle(ctx context.Context, tx pgx.Tx, cycleID int64, endDate string, closedBy int64) error {
+	_, err := tx.Exec(ctx,
+		`UPDATE cycles SET status = 'closed', end_date = $2::date, closed_by = $3 WHERE id = $1`,
+		cycleID, endDate, closedBy)
+	return err
+}

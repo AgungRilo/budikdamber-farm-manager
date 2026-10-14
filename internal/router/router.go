@@ -38,6 +38,8 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	healthH := handler.NewHealthHandler(db)
 	feedLogH := handler.NewFeedLogHandler(service.NewFeedLogService(repository.NewFeedLogRepository(db)))
 	mortalityH := handler.NewMortalityLogHandler(service.NewMortalityLogService(repository.NewMortalityLogRepository(db)))
+	saleH := handler.NewSaleHandler(service.NewSaleService(repository.NewSaleRepository(db)))
+
 	// ===== Public =====
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/health", healthH.Check)
@@ -98,6 +100,15 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	protected.GET("/cycles/:id/mortality-logs", mortalityH.List)
 	protected.POST("/cycles/:id/mortality-logs", mortalityH.Create)
 	ownerOnly.DELETE("/mortality-logs/:id", mortalityH.Delete)
+
+	//sales
+	protected.GET("/cycles/:id/sales", saleH.List)
+	protected.POST("/cycles/:id/sales", saleH.Create)
+	ownerOnly.PATCH("/sales/:id/paid", saleH.SetPaid)
+	ownerOnly.DELETE("/sales/:id", saleH.Delete)
+
+	ownerOnly.POST("/cycles/:id/close", cycleH.Close)
+	ownerOnly.POST("/cycles/:id/reopen", cycleH.Reopen)
 
 	return r
 }

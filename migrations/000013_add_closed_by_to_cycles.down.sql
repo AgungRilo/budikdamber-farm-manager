@@ -1,0 +1,2 @@
+ALTER TABLE cycles DROP CONSTRAINT IF EXISTS fk_cycles_closed_by;
+ALTER TABLE cycles DROP COLUMN IF EXISTS closed_by;

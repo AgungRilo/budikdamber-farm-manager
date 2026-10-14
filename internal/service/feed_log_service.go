@@ -22,11 +22,10 @@ func NewFeedLogService(repo *repository.FeedLogRepository) *FeedLogService {
 
 // validateLogDate dipakai juga oleh log kematian.
 func validateLogDate(date string) error {
-	d, err := time.Parse("2006-01-02", date)
-	if err != nil {
+	if _, err := time.Parse("2006-01-02", date); err != nil {
 		return err
 	}
-	if d.After(time.Now()) {
+	if isFutureDate(date) {
 		return ErrLogDateInFuture
 	}
 	return nil

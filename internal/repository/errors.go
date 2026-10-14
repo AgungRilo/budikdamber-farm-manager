@@ -19,6 +19,11 @@ var (
 	ErrLogBeforeStart = errors.New("tanggal log tidak boleh sebelum tanggal tebar")
 )
 
+var (
+	ErrCycleNotClosed = errors.New("siklus belum ditutup")
+	ErrEndBeforeStart = errors.New("tanggal selesai tidak boleh sebelum tanggal tebar")
+)
+
 // AliveExceededError: jumlah mati/jual melebihi ikan hidup (R02).
 type AliveExceededError struct {
 	Requested int   `json:"requested"`

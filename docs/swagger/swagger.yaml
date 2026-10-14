@@ -53,6 +53,11 @@ definitions:
       updated_at:
         type: string
     type: object
+  model.CycleCloseInput:
+    properties:
+      end_date:
+        type: string
+    type: object
   model.CycleInput:
     properties:
       initial_qty:
@@ -315,6 +320,123 @@ definitions:
     - name
     - password
     type: object
+  model.Sale:
+    properties:
+      buyer_name:
+        type: string
+      channel:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: integer
+      created_by_name:
+        type: string
+      cycle_id:
+        type: integer
+      id:
+        type: integer
+      is_paid:
+        type: boolean
+      notes:
+        type: string
+      price_per_fish:
+        type: integer
+      qty:
+        type: integer
+      sale_date:
+        type: string
+      sale_type:
+        type: string
+      total:
+        type: integer
+      updated_at:
+        type: string
+      weight_kg:
+        type: number
+    type: object
+  model.SaleCreateResult:
+    properties:
+      alive_qty_after:
+        type: integer
+      buyer_name:
+        type: string
+      channel:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: integer
+      created_by_name:
+        type: string
+      cycle_closed:
+        type: boolean
+      cycle_id:
+        type: integer
+      id:
+        type: integer
+      is_paid:
+        type: boolean
+      notes:
+        type: string
+      price_per_fish:
+        type: integer
+      qty:
+        type: integer
+      sale_date:
+        type: string
+      sale_type:
+        type: string
+      total:
+        type: integer
+      updated_at:
+        type: string
+      weight_kg:
+        type: number
+    type: object
+  model.SaleInput:
+    properties:
+      buyer_name:
+        maxLength: 100
+        type: string
+      channel:
+        enum:
+        - langsung
+        - pasar
+        - pengepul
+        - online
+        type: string
+      is_paid:
+        type: boolean
+      notes:
+        maxLength: 500
+        type: string
+      price_per_fish:
+        description: kosong → harga default jenis ikan
+        minimum: 0
+        type: integer
+      qty:
+        type: integer
+      sale_date:
+        type: string
+      sale_type:
+        enum:
+        - sale
+        - own_use
+        type: string
+      weight_kg:
+        type: number
+    required:
+    - qty
+    - sale_date
+    type: object
+  model.SalePaidInput:
+    properties:
+      is_paid:
+        type: boolean
+    required:
+    - is_paid
+    type: object
   model.User:
     properties:
       created_at:
@@ -558,6 +680,50 @@ paths:
       summary: Detail siklus (termasuk jumlah hidup, mati, terjual)
       tags:
       - Cycles
+  /cycles/{id}/close:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID siklus
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Tanggal selesai (default hari ini)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/model.CycleCloseInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Cycle'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Tutup siklus manual (owner)
+      tags:
+      - Cycles
   /cycles/{id}/feed-logs:
     get:
       parameters:
@@ -749,6 +915,145 @@ paths:
         hidup habis
       tags:
       - Mortality Logs
+  /cycles/{id}/reopen:
+    post:
+      parameters:
+      - description: ID siklus
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Cycle'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Buka kembali siklus yang sudah ditutup (owner)
+      tags:
+      - Cycles
+  /cycles/{id}/sales:
+    get:
+      parameters:
+      - description: ID siklus
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Dari tanggal (YYYY-MM-DD)
+        in: query
+        name: date_from
+        type: string
+      - description: Sampai tanggal (YYYY-MM-DD)
+        in: query
+        name: date_to
+        type: string
+      - description: Jenis
+        enum:
+        - sale
+        - own_use
+        in: query
+        name: sale_type
+        type: string
+      - description: Status lunas
+        in: query
+        name: is_paid
+        type: boolean
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Sale'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Daftar penjualan per siklus
+      tags:
+      - Sales
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID siklus
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data penjualan
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.SaleInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SaleCreateResult'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Catat penjualan / konsumsi sendiri (owner & worker)
+      tags:
+      - Sales
   /feed-logs/{id}:
     delete:
       parameters:
@@ -1317,6 +1622,71 @@ paths:
       summary: Ubah wadah (owner)
       tags:
       - Ponds
+  /sales/{id}:
+    delete:
+      parameters:
+      - description: ID penjualan
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Hapus penjualan (owner)
+      tags:
+      - Sales
+  /sales/{id}/paid:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID penjualan
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status lunas
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.SalePaidInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Sale'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Tandai penjualan lunas / belum lunas (owner)
+      tags:
+      - Sales
   /users:
     get:
       parameters:

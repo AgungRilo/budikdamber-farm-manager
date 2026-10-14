@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -157,6 +158,89 @@ func (r *CycleRepository) Create(ctx context.Context, in model.CycleInput, creat
 		return nil, translatePgError(err)
 	}
 
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
+}
+
+// Close: tutup siklus manual (owner).
+func (r *CycleRepository) Close(ctx context.Context, id int64, endDate string, closedBy int64) (*model.Cycle, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	start, err := lockActiveCycle(ctx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+	end, _ := time.Parse("2006-01-02", endDate)
+	if end.Before(start) {
+		return nil, ErrEndBeforeStart
+	}
+	if err := closeCycle(ctx, tx, id, endDate, closedBy); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
+}
+
+// Reopen: buka kembali siklus yang sudah ditutup, dengan cek ulang kapasitas wadah.
+func (r *CycleRepository) Reopen(ctx context.Context, id int64) (*model.Cycle, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	var status string
+	var pondID int64
+	err = tx.QueryRow(ctx, `SELECT status::text, pond_id FROM cycles WHERE id = $1 FOR UPDATE`, id).Scan(&status, &pondID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrCycleNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if status != "closed" {
+		return nil, ErrCycleNotClosed
+	}
+
+	// Kunci wadah (urutan sama seperti Create) lalu cek kapasitas.
+	var maxStock int
+	var isActive bool
+	err = tx.QueryRow(ctx,
+		`SELECT max_stock, is_active FROM ponds WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, pondID).
+		Scan(&maxStock, &isActive)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && !isActive) {
+		return nil, ErrPondUnavailable
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var used, alive int64
+	if err := tx.QueryRow(ctx, `
+		SELECT COALESCE(SUM(s.alive_qty), 0)
+		FROM cycles c JOIN v_cycle_status s ON s.cycle_id = c.id
+		WHERE c.pond_id = $1 AND c.status = 'active'`, pondID).Scan(&used); err != nil {
+		return nil, err
+	}
+	if err := tx.QueryRow(ctx, `SELECT alive_qty FROM v_cycle_status WHERE cycle_id = $1`, id).Scan(&alive); err != nil {
+		return nil, err
+	}
+	if used+alive > int64(maxStock) {
+		return nil, &CapacityError{MaxStock: maxStock, Used: used, Remaining: int64(maxStock) - used}
+	}
+
+	if _, err := tx.Exec(ctx,
+		`UPDATE cycles SET status = 'active', end_date = NULL, closed_by = NULL WHERE id = $1`, id); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}

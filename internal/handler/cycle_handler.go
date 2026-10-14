@@ -119,3 +119,73 @@ func (h *CycleHandler) Create(c *gin.Context) {
 	}
 	response.Created(c, "siklus berhasil dibuat", cy)
 }
+
+// cycleStateError: error khusus tutup/buka siklus, sisanya diteruskan ke cycleError.
+func cycleStateError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, repository.ErrCycleNotFound):
+		response.Error(c, http.StatusNotFound, err.Error())
+	case errors.Is(err, repository.ErrCycleClosed), errors.Is(err, repository.ErrCycleNotClosed):
+		response.Error(c, http.StatusConflict, err.Error())
+	case errors.Is(err, repository.ErrEndBeforeStart), errors.Is(err, service.ErrLogDateInFuture):
+		response.Error(c, http.StatusBadRequest, err.Error())
+	default:
+		cycleError(c, err) // CapacityError, ErrPondUnavailable, dst.
+	}
+}
+
+// Close godoc
+// @Summary   Tutup siklus manual (owner)
+// @Tags      Cycles
+// @Accept    json
+// @Produce   json
+// @Security  BearerAuth
+// @Param     id    path      int                    true   "ID siklus"
+// @Param     body  body      model.CycleCloseInput  false  "Tanggal selesai (default hari ini)"
+// @Success   200   {object}  response.Body{data=model.Cycle}
+// @Failure   400   {object}  response.Body
+// @Failure   404   {object}  response.Body
+// @Failure   409   {object}  response.Body
+// @Router    /cycles/{id}/close [post]
+func (h *CycleHandler) Close(c *gin.Context) {
+	id, ok := parseID(c)
+	if !ok {
+		return
+	}
+	var in model.CycleCloseInput
+	if c.Request.ContentLength > 0 { // body boleh kosong
+		if err := c.ShouldBindJSON(&in); err != nil {
+			response.ValidationError(c, err)
+			return
+		}
+	}
+	cy, err := h.svc.Close(c.Request.Context(), id, in, c.GetInt64(middleware.CtxUserID))
+	if err != nil {
+		cycleStateError(c, err)
+		return
+	}
+	response.OK(c, "siklus berhasil ditutup", cy)
+}
+
+// Reopen godoc
+// @Summary   Buka kembali siklus yang sudah ditutup (owner)
+// @Tags      Cycles
+// @Produce   json
+// @Security  BearerAuth
+// @Param     id   path      int  true  "ID siklus"
+// @Success   200  {object}  response.Body{data=model.Cycle}
+// @Failure   404  {object}  response.Body
+// @Failure   409  {object}  response.Body
+// @Router    /cycles/{id}/reopen [post]
+func (h *CycleHandler) Reopen(c *gin.Context) {
+	id, ok := parseID(c)
+	if !ok {
+		return
+	}
+	cy, err := h.svc.Reopen(c.Request.Context(), id)
+	if err != nil {
+		cycleStateError(c, err)
+		return
+	}
+	response.OK(c, "siklus berhasil dibuka kembali", cy)
+}
