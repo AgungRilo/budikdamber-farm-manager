@@ -82,6 +82,102 @@ definitions:
     - species_id
     - start_date
     type: object
+  model.CycleMetrics:
+    properties:
+      alive_qty:
+        type: integer
+      code:
+        type: string
+      cycle_id:
+        type: integer
+      dead_qty:
+        type: integer
+      feed_cost:
+        type: integer
+      feed_gram:
+        type: integer
+      hpp_per_fish:
+        description: null kalau tidak ada ikan yang bertahan
+        type: integer
+      initial_qty:
+        type: integer
+      is_final:
+        description: false = siklus masih berjalan, angka sementara
+        type: boolean
+      margin_pct:
+        description: null kalau belum ada pendapatan
+        type: number
+      other_cost:
+        type: integer
+      own_use_qty:
+        type: integer
+      profit:
+        type: integer
+      receivable:
+        type: integer
+      revenue:
+        type: integer
+      sale_qty:
+        type: integer
+      seed_cost:
+        type: integer
+      status:
+        type: string
+      survival_rate_pct:
+        type: number
+      total_cost:
+        type: integer
+    type: object
+  model.Expense:
+    properties:
+      amount:
+        type: integer
+      category:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: integer
+      created_by_name:
+        type: string
+      cycle_code:
+        type: string
+      cycle_id:
+        type: integer
+      description:
+        type: string
+      expense_date:
+        type: string
+      id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  model.ExpenseInput:
+    properties:
+      amount:
+        type: integer
+      category:
+        enum:
+        - obat_probiotik
+        - peralatan
+        - utilitas
+        - tenaga_kerja
+        - lainnya
+        type: string
+      cycle_id:
+        type: integer
+      description:
+        maxLength: 200
+        type: string
+      expense_date:
+        type: string
+    required:
+    - amount
+    - category
+    - description
+    - expense_date
+    type: object
   model.Feed:
     properties:
       brand:
@@ -819,6 +915,40 @@ paths:
       summary: Catat pemberian pakan (owner & worker)
       tags:
       - Feed Logs
+  /cycles/{id}/metrics:
+    get:
+      description: Angka bersifat sementara selama siklus masih aktif (is_final=false).
+      parameters:
+      - description: ID siklus
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.CycleMetrics'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: 'Metrik bisnis siklus: SR, biaya, HPP, laba, margin (owner)'
+      tags:
+      - Cycles
   /cycles/{id}/mortality-logs:
     get:
       parameters:
@@ -1054,6 +1184,205 @@ paths:
       summary: Catat penjualan / konsumsi sendiri (owner & worker)
       tags:
       - Sales
+  /expenses:
+    get:
+      parameters:
+      - description: Filter per siklus
+        in: query
+        name: cycle_id
+        type: integer
+      - description: Hanya biaya umum (tanpa siklus)
+        in: query
+        name: general_only
+        type: boolean
+      - description: Kategori
+        enum:
+        - obat_probiotik
+        - peralatan
+        - utilitas
+        - tenaga_kerja
+        - lainnya
+        in: query
+        name: category
+        type: string
+      - description: Dari tanggal (YYYY-MM-DD)
+        in: query
+        name: date_from
+        type: string
+      - description: Sampai tanggal (YYYY-MM-DD)
+        in: query
+        name: date_to
+        type: string
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Jumlah per halaman
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Expense'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Daftar pengeluaran
+      tags:
+      - Expenses
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Data pengeluaran
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.ExpenseInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Expense'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Catat pengeluaran (owner)
+      tags:
+      - Expenses
+  /expenses/{id}:
+    delete:
+      parameters:
+      - description: ID pengeluaran
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Hapus pengeluaran (owner)
+      tags:
+      - Expenses
+    get:
+      parameters:
+      - description: ID pengeluaran
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Expense'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Detail pengeluaran
+      tags:
+      - Expenses
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID pengeluaran
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data pengeluaran
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.ExpenseInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Expense'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Ubah pengeluaran (owner)
+      tags:
+      - Expenses
   /feed-logs/{id}:
     delete:
       parameters:

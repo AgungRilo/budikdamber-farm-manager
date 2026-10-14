@@ -246,3 +246,29 @@ func (r *CycleRepository) Reopen(ctx context.Context, id int64) (*model.Cycle, e
 	}
 	return r.FindByID(ctx, id)
 }
+
+func (r *CycleRepository) Metrics(ctx context.Context, id int64) (*model.CycleMetrics, error) {
+	var m model.CycleMetrics
+	err := r.db.QueryRow(ctx, `
+		SELECT c.id, c.code, c.status::text,
+		       vm.initial_qty, vm.dead_qty, vm.alive_qty, vm.sale_qty, vm.own_use_qty,
+		       vm.survival_rate_pct, vm.feed_gram,
+		       vm.seed_cost, vm.feed_cost, vm.other_cost, vm.total_cost,
+		       vm.revenue, vm.receivable, vm.profit, vm.hpp_per_fish, vm.margin_pct
+		FROM cycles c
+		JOIN v_cycle_metrics vm ON vm.cycle_id = c.id
+		WHERE c.id = $1`, id).Scan(
+		&m.CycleID, &m.Code, &m.Status,
+		&m.InitialQty, &m.DeadQty, &m.AliveQty, &m.SaleQty, &m.OwnUseQty,
+		&m.SurvivalRatePct, &m.FeedGram,
+		&m.SeedCost, &m.FeedCost, &m.OtherCost, &m.TotalCost,
+		&m.Revenue, &m.Receivable, &m.Profit, &m.HppPerFish, &m.MarginPct)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrCycleNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	m.IsFinal = m.Status == "closed"
+	return &m, nil
+}

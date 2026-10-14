@@ -46,3 +46,26 @@ type CycleFilter struct {
 type CycleCloseInput struct {
 	EndDate string `json:"end_date" binding:"omitempty,datetime=2006-01-02"`
 }
+
+type CycleMetrics struct {
+	CycleID         int64    `json:"cycle_id"`
+	Code            string   `json:"code"`
+	Status          string   `json:"status"`
+	InitialQty      int64    `json:"initial_qty"`
+	DeadQty         int64    `json:"dead_qty"`
+	AliveQty        int64    `json:"alive_qty"`
+	SaleQty         int64    `json:"sale_qty"`
+	OwnUseQty       int64    `json:"own_use_qty"`
+	SurvivalRatePct float64  `json:"survival_rate_pct"`
+	FeedGram        int64    `json:"feed_gram"`
+	SeedCost        int64    `json:"seed_cost"`
+	FeedCost        int64    `json:"feed_cost"`
+	OtherCost       int64    `json:"other_cost"`
+	TotalCost       int64    `json:"total_cost"`
+	Revenue         int64    `json:"revenue"`
+	Receivable      int64    `json:"receivable"`
+	Profit          int64    `json:"profit"`
+	HppPerFish      *int64   `json:"hpp_per_fish"` // null kalau tidak ada ikan yang bertahan
+	MarginPct       *float64 `json:"margin_pct"`   // null kalau belum ada pendapatan
+	IsFinal         bool     `json:"is_final"`     // false = siklus masih berjalan, angka sementara
+}

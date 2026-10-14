@@ -471,6 +471,64 @@
                 }
             }
         },
+        "/cycles/{id}/metrics": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Angka bersifat sementara selama siklus masih aktif (is_final=false).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cycles"
+                ],
+                "summary": "Metrik bisnis siklus: SR, biaya, HPP, laba, margin (owner)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID siklus",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.CycleMetrics"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/cycles/{id}/mortality-logs": {
             "get": {
                 "security": [
@@ -837,6 +895,334 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/expenses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Expenses"
+                ],
+                "summary": "Daftar pengeluaran",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Filter per siklus",
+                        "name": "cycle_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Hanya biaya umum (tanpa siklus)",
+                        "name": "general_only",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "obat_probiotik",
+                            "peralatan",
+                            "utilitas",
+                            "tenaga_kerja",
+                            "lainnya"
+                        ],
+                        "type": "string",
+                        "description": "Kategori",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Dari tanggal (YYYY-MM-DD)",
+                        "name": "date_from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sampai tanggal (YYYY-MM-DD)",
+                        "name": "date_to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Halaman",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Jumlah per halaman",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.Expense"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/definitions/response.Meta"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Expenses"
+                ],
+                "summary": "Catat pengeluaran (owner)",
+                "parameters": [
+                    {
+                        "description": "Data pengeluaran",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ExpenseInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.Expense"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/expenses/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Expenses"
+                ],
+                "summary": "Detail pengeluaran",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID pengeluaran",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.Expense"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Expenses"
+                ],
+                "summary": "Ubah pengeluaran (owner)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID pengeluaran",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Data pengeluaran",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ExpenseInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.Expense"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Expenses"
+                ],
+                "summary": "Hapus pengeluaran (owner)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID pengeluaran",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/response.Body"
                         }
@@ -2473,6 +2859,146 @@
                     "type": "integer"
                 },
                 "start_date": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CycleMetrics": {
+            "type": "object",
+            "properties": {
+                "alive_qty": {
+                    "type": "integer"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "cycle_id": {
+                    "type": "integer"
+                },
+                "dead_qty": {
+                    "type": "integer"
+                },
+                "feed_cost": {
+                    "type": "integer"
+                },
+                "feed_gram": {
+                    "type": "integer"
+                },
+                "hpp_per_fish": {
+                    "description": "null kalau tidak ada ikan yang bertahan",
+                    "type": "integer"
+                },
+                "initial_qty": {
+                    "type": "integer"
+                },
+                "is_final": {
+                    "description": "false = siklus masih berjalan, angka sementara",
+                    "type": "boolean"
+                },
+                "margin_pct": {
+                    "description": "null kalau belum ada pendapatan",
+                    "type": "number"
+                },
+                "other_cost": {
+                    "type": "integer"
+                },
+                "own_use_qty": {
+                    "type": "integer"
+                },
+                "profit": {
+                    "type": "integer"
+                },
+                "receivable": {
+                    "type": "integer"
+                },
+                "revenue": {
+                    "type": "integer"
+                },
+                "sale_qty": {
+                    "type": "integer"
+                },
+                "seed_cost": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "survival_rate_pct": {
+                    "type": "number"
+                },
+                "total_cost": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Expense": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "integer"
+                },
+                "created_by_name": {
+                    "type": "string"
+                },
+                "cycle_code": {
+                    "type": "string"
+                },
+                "cycle_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "expense_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ExpenseInput": {
+            "type": "object",
+            "required": [
+                "amount",
+                "category",
+                "description",
+                "expense_date"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "obat_probiotik",
+                        "peralatan",
+                        "utilitas",
+                        "tenaga_kerja",
+                        "lainnya"
+                    ]
+                },
+                "cycle_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "expense_date": {
                     "type": "string"
                 }
             }

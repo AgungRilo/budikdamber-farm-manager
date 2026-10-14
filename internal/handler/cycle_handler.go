@@ -189,3 +189,27 @@ func (h *CycleHandler) Reopen(c *gin.Context) {
 	}
 	response.OK(c, "siklus berhasil dibuka kembali", cy)
 }
+
+// Metrics godoc
+// @Summary      Metrik bisnis siklus: SR, biaya, HPP, laba, margin (owner)
+// @Description  Angka bersifat sementara selama siklus masih aktif (is_final=false).
+// @Tags         Cycles
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "ID siklus"
+// @Success      200  {object}  response.Body{data=model.CycleMetrics}
+// @Failure      403  {object}  response.Body
+// @Failure      404  {object}  response.Body
+// @Router       /cycles/{id}/metrics [get]
+func (h *CycleHandler) Metrics(c *gin.Context) {
+	id, ok := parseID(c)
+	if !ok {
+		return
+	}
+	m, err := h.svc.Metrics(c.Request.Context(), id)
+	if err != nil {
+		cycleStateError(c, err)
+		return
+	}
+	response.OK(c, "berhasil mengambil metrik siklus", m)
+}

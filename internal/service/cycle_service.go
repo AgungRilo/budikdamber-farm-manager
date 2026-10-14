@@ -55,3 +55,7 @@ func (s *CycleService) Close(ctx context.Context, id int64, in model.CycleCloseI
 func (s *CycleService) Reopen(ctx context.Context, id int64) (*model.Cycle, error) {
 	return s.repo.Reopen(ctx, id)
 }
+
+func (s *CycleService) Metrics(ctx context.Context, id int64) (*model.CycleMetrics, error) {
+	return s.repo.Metrics(ctx, id)
+}
