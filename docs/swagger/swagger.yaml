@@ -10,6 +10,39 @@ definitions:
     - email
     - password
     type: object
+  model.ActiveCycleSummary:
+    properties:
+      age_days:
+        type: integer
+      alive_qty:
+        type: integer
+      code:
+        type: string
+      cycle_id:
+        type: integer
+      days_to_harvest:
+        description: negatif = lewat target
+        type: integer
+      pond_name:
+        type: string
+      species_name:
+        type: string
+      target_days:
+        type: integer
+    type: object
+  model.ChannelSales:
+    properties:
+      channel:
+        type: string
+      est_gross_margin:
+        type: integer
+      qty:
+        type: integer
+      revenue:
+        type: integer
+      transactions:
+        type: integer
+    type: object
   model.Cycle:
     properties:
       age_days:
@@ -126,6 +159,55 @@ definitions:
       survival_rate_pct:
         type: number
       total_cost:
+        type: integer
+    type: object
+  model.Dashboard:
+    properties:
+      active_cycles:
+        items:
+          $ref: '#/definitions/model.ActiveCycleSummary'
+        type: array
+      finance:
+        $ref: '#/definitions/model.DashboardFinance'
+      generated_at:
+        type: string
+      receivables:
+        items:
+          $ref: '#/definitions/model.Receivable'
+        type: array
+      sales_by_channel:
+        items:
+          $ref: '#/definitions/model.ChannelSales'
+        type: array
+      stock:
+        $ref: '#/definitions/model.DashboardStock'
+    type: object
+  model.DashboardFinance:
+    properties:
+      cycle_profit:
+        type: integer
+      general_expenses:
+        type: integer
+      net_profit:
+        type: integer
+      receivable:
+        type: integer
+      revenue:
+        type: integer
+      total_cost:
+        type: integer
+    type: object
+  model.DashboardStock:
+    properties:
+      active_cycles:
+        type: integer
+      active_ponds:
+        type: integer
+      alive_fish:
+        type: integer
+      capacity_used_pct:
+        type: number
+      total_capacity:
         type: integer
     type: object
   model.Expense:
@@ -398,6 +480,21 @@ definitions:
     - max_stock
     - name
     - type
+    type: object
+  model.Receivable:
+    properties:
+      buyer_name:
+        type: string
+      cycle_code:
+        type: string
+      days_outstanding:
+        type: integer
+      sale_date:
+        type: string
+      sale_id:
+        type: integer
+      total:
+        type: integer
     type: object
   model.RegisterInput:
     properties:
@@ -1184,6 +1281,40 @@ paths:
       summary: Catat penjualan / konsumsi sendiri (owner & worker)
       tags:
       - Sales
+  /dashboard:
+    get:
+      description: Stok, keuangan, penjualan per kanal, piutang, dan siklus aktif.
+        5 query dijalankan paralel (goroutine/errgroup).
+      parameters:
+      - description: 'Periode penjualan per kanal: dari (YYYY-MM-DD)'
+        in: query
+        name: date_from
+        type: string
+      - description: 'Periode penjualan per kanal: sampai (YYYY-MM-DD)'
+        in: query
+        name: date_to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Dashboard'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Body'
+      security:
+      - BearerAuth: []
+      summary: Dashboard usaha (owner)
+      tags:
+      - Dashboard
   /expenses:
     get:
       parameters:

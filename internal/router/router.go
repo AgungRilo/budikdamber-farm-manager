@@ -40,6 +40,7 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	mortalityH := handler.NewMortalityLogHandler(service.NewMortalityLogService(repository.NewMortalityLogRepository(db)))
 	saleH := handler.NewSaleHandler(service.NewSaleService(repository.NewSaleRepository(db)))
 	expenseH := handler.NewExpenseHandler(service.NewExpenseService(repository.NewExpenseRepository(db)))
+	dashboardH := handler.NewDashboardHandler(service.NewDashboardService(repository.NewDashboardRepository(db)))
 
 	// ===== Public =====
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -119,6 +120,9 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	ownerOnly.DELETE("/expenses/:id", expenseH.Delete)
 
 	ownerOnly.GET("/cycles/:id/metrics", cycleH.Metrics) // data keuangan: khusus owner
+
+	// dashboard
+	ownerOnly.GET("/dashboard", dashboardH.Get)
 
 	return r
 }

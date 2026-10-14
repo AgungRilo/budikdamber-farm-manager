@@ -921,6 +921,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/dashboard": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stok, keuangan, penjualan per kanal, piutang, dan siklus aktif. 5 query dijalankan paralel (goroutine/errgroup).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Dashboard usaha (owner)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Periode penjualan per kanal: dari (YYYY-MM-DD)",
+                        "name": "date_from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Periode penjualan per kanal: sampai (YYYY-MM-DD)",
+                        "name": "date_to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.Dashboard"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/expenses": {
             "get": {
                 "security": [
@@ -2763,6 +2820,56 @@ const docTemplate = `{
                 }
             }
         },
+        "model.ActiveCycleSummary": {
+            "type": "object",
+            "properties": {
+                "age_days": {
+                    "type": "integer"
+                },
+                "alive_qty": {
+                    "type": "integer"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "cycle_id": {
+                    "type": "integer"
+                },
+                "days_to_harvest": {
+                    "description": "negatif = lewat target",
+                    "type": "integer"
+                },
+                "pond_name": {
+                    "type": "string"
+                },
+                "species_name": {
+                    "type": "string"
+                },
+                "target_days": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.ChannelSales": {
+            "type": "object",
+            "properties": {
+                "channel": {
+                    "type": "string"
+                },
+                "est_gross_margin": {
+                    "type": "integer"
+                },
+                "qty": {
+                    "type": "integer"
+                },
+                "revenue": {
+                    "type": "integer"
+                },
+                "transactions": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.Cycle": {
             "type": "object",
             "properties": {
@@ -2934,6 +3041,81 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "total_cost": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Dashboard": {
+            "type": "object",
+            "properties": {
+                "active_cycles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ActiveCycleSummary"
+                    }
+                },
+                "finance": {
+                    "$ref": "#/definitions/model.DashboardFinance"
+                },
+                "generated_at": {
+                    "type": "string"
+                },
+                "receivables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Receivable"
+                    }
+                },
+                "sales_by_channel": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ChannelSales"
+                    }
+                },
+                "stock": {
+                    "$ref": "#/definitions/model.DashboardStock"
+                }
+            }
+        },
+        "model.DashboardFinance": {
+            "type": "object",
+            "properties": {
+                "cycle_profit": {
+                    "type": "integer"
+                },
+                "general_expenses": {
+                    "type": "integer"
+                },
+                "net_profit": {
+                    "type": "integer"
+                },
+                "receivable": {
+                    "type": "integer"
+                },
+                "revenue": {
+                    "type": "integer"
+                },
+                "total_cost": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.DashboardStock": {
+            "type": "object",
+            "properties": {
+                "active_cycles": {
+                    "type": "integer"
+                },
+                "active_ponds": {
+                    "type": "integer"
+                },
+                "alive_fish": {
+                    "type": "integer"
+                },
+                "capacity_used_pct": {
+                    "type": "number"
+                },
+                "total_capacity": {
                     "type": "integer"
                 }
             }
@@ -3332,6 +3514,29 @@ const docTemplate = `{
                     ]
                 },
                 "volume_liter": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Receivable": {
+            "type": "object",
+            "properties": {
+                "buyer_name": {
+                    "type": "string"
+                },
+                "cycle_code": {
+                    "type": "string"
+                },
+                "days_outstanding": {
+                    "type": "integer"
+                },
+                "sale_date": {
+                    "type": "string"
+                },
+                "sale_id": {
+                    "type": "integer"
+                },
+                "total": {
                     "type": "integer"
                 }
             }
