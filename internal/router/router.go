@@ -36,7 +36,8 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	feedH := handler.NewFeedHandler(service.NewFeedService(repository.NewFeedRepository(db)))
 	cycleH := handler.NewCycleHandler(service.NewCycleService(repository.NewCycleRepository(db)))
 	healthH := handler.NewHealthHandler(db)
-
+	feedLogH := handler.NewFeedLogHandler(service.NewFeedLogService(repository.NewFeedLogRepository(db)))
+	mortalityH := handler.NewMortalityLogHandler(service.NewMortalityLogService(repository.NewMortalityLogRepository(db)))
 	// ===== Public =====
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/health", healthH.Check)
@@ -87,6 +88,16 @@ func New(db *pgxpool.Pool, cfg config.Config) *gin.Engine {
 	protected.GET("/cycles", cycleH.List)
 	protected.GET("/cycles/:id", cycleH.Get)
 	ownerOnly.POST("/cycles", cycleH.Create)
+
+	// Log pakan: owner & worker mencatat, hanya owner yang menghapus
+	protected.GET("/cycles/:id/feed-logs", feedLogH.List)
+	protected.POST("/cycles/:id/feed-logs", feedLogH.Create)
+	ownerOnly.DELETE("/feed-logs/:id", feedLogH.Delete)
+
+	// mortality log
+	protected.GET("/cycles/:id/mortality-logs", mortalityH.List)
+	protected.POST("/cycles/:id/mortality-logs", mortalityH.Create)
+	ownerOnly.DELETE("/mortality-logs/:id", mortalityH.Delete)
 
 	return r
 }

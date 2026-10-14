@@ -12,6 +12,23 @@ var (
 	ErrInvalid   = errors.New("data melanggar aturan")
 )
 
+var (
+	ErrCycleNotFound  = errors.New("siklus tidak ditemukan")
+	ErrCycleClosed    = errors.New("siklus sudah ditutup, data tidak bisa diubah")
+	ErrFeedNotFound   = errors.New("pakan tidak ditemukan")
+	ErrLogBeforeStart = errors.New("tanggal log tidak boleh sebelum tanggal tebar")
+)
+
+// AliveExceededError: jumlah mati/jual melebihi ikan hidup (R02).
+type AliveExceededError struct {
+	Requested int   `json:"requested"`
+	Alive     int64 `json:"alive"`
+}
+
+func (e *AliveExceededError) Error() string {
+	return fmt.Sprintf("jumlah melebihi ikan hidup: diminta %d, sisa hidup %d ekor", e.Requested, e.Alive)
+}
+
 // translatePgError mengubah kode error PostgreSQL jadi error yang dipahami service/handler.
 func translatePgError(err error) error {
 	var pgErr *pgconn.PgError
