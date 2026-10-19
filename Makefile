@@ -72,6 +72,9 @@ migrate-version:
 migrate-up-prod:
 	@migrate -path $(MIGRATION_PATH) -database "$(PROD_DATABASE_URL)" up
 
+migrate-version-prod:
+	@migrate -path $(MIGRATION_PATH) -database "$(PROD_DATABASE_URL)" version
+
 ## migrate-force: Force versi migration (make migrate-force v=1)
 migrate-force:
 	migrate -path $(MIGRATION_PATH) -database "$(DATABASE_URL)" force $(v)
@@ -84,6 +87,12 @@ migrate-drop:
 clean:
 	rm -rf $(BIN_DIR)
 
+seed-demo:
+	go run ./cmd/seed-demo
+
+seed-demo-prod:
+	@DATABASE_URL="$(PROD_DATABASE_URL)" SEED_WORKER_PASSWORD="$(PROD_SEED_WORKER_PASSWORD)" go run ./cmd/seed-demo
+
 ## seed: Membuat akun owner pertama
 seed:
 	go run ./cmd/seed
@@ -95,3 +104,11 @@ seed-prod:
 ## swag: Generate dokumentasi Swagger
 swag:
 	swag init -g cmd/main.go -o docs/swagger
+
+
+## db-reset: kosongkan & isi ulang DB LOKAL (migrasi + owner + data demo). JANGAN untuk production.
+db-reset:
+	docker exec budikdamber-db psql -U budikdamber -d budikdamber_dev -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+	$(MAKE) migrate-up
+	$(MAKE) seed
+	$(MAKE) seed-demo
