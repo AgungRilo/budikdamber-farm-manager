@@ -1,471 +1,402 @@
-# ⚔️ ABYSS HUNTER - Dungeon Crawler PWA
+# Budikdamber Farm Manager
 
-## 🎮 Game Overview
+REST API untuk mengelola usaha budidaya ikan rumahan dengan sistem **budikdamber** (budidaya ikan dalam ember) dan kolam terpal: mencatat siklus tebar, pemberian pakan, kematian, penjualan, dan pengeluaran, lalu menghitung **survival rate, HPP per ekor, laba, dan margin** secara otomatis.
 
-**Abyss Hunter** adalah semi-idle roguelite dungeon crawler berbasis PWA dengan Dark Chibi Fantasy aesthetic. Game ini dirancang untuk memberikan dopamine progression yang addictive dengan sistem loot, refine, dan prestige.
+Dibuat sebagai Final Project Bootcamp Golang SanberCode, berdasarkan kebutuhan usaha budidaya lele milik penulis sendiri.
 
-### 📱 Platform Support
-- ✅ Mobile Browser (iOS & Android)
-- ✅ Desktop Browser (Chrome, Firefox, Edge)
-- ✅ Installable PWA
-- ✅ Partial Offline Play (Combat, Inventory Management)
+- **Production:** https://budikdamber-farm-manager-production.up.railway.app
+- **Swagger (dokumentasi interaktif):** https://budikdamber-farm-manager-production.up.railway.app/swagger/index.html
+- **Health check:** https://budikdamber-farm-manager-production.up.railway.app/health
 
 ---
 
-## 🚀 Quick Start
+## Daftar Isi
 
-### Prerequisites
-- Node.js 16+ dan npm 8+
-- Modern web browser dengan ES6 support
-
-### Installation
-
-```bash
-# Clone atau download project
-cd abyss-hunter
-
-# Install dependencies
-npm install
-
-# Development mode
-npm run dev
-
-# Production build
-npm run build
-
-# Preview build
-npm run preview
-```
-
-Server akan berjalan di `http://localhost:3000`
+- [Masalah yang Diselesaikan](#masalah-yang-diselesaikan)
+- [Fitur](#fitur)
+- [Tech Stack](#tech-stack)
+- [Arsitektur](#arsitektur)
+- [Skema Database](#skema-database)
+- [Aturan Bisnis](#aturan-bisnis)
+- [Autentikasi & Role](#autentikasi--role)
+- [Daftar Endpoint](#daftar-endpoint)
+- [Format Response](#format-response)
+- [Cara Pakai (Alur Demo)](#cara-pakai-alur-demo)
+- [Menjalankan di Lokal](#menjalankan-di-lokal)
+- [Deployment](#deployment)
+- [Keputusan Desain](#keputusan-desain)
+- [Keterbatasan & Pengembangan Berikutnya](#keterbatasan--pengembangan-berikutnya)
 
 ---
 
-## 📁 Project Structure
+## Masalah yang Diselesaikan
 
-```
-abyss-hunter/
-├── public/
-│   ├── index.html          # HTML entry point
-│   ├── sw.js               # Service Worker
-│   └── manifest.json       # PWA manifest
-├── src/
-│   ├── App.jsx            # Root component
-│   ├── App.css            # Global styles
-│   ├── main.jsx           # React entry
-│   ├── pages/
-│   │   ├── GameMain.jsx   # Main game page
-│   │   └── GameMain.css
-│   ├── components/
-│   │   ├── ClassSelection.jsx
-│   │   ├── Battle.jsx
-│   │   ├── Inventory.jsx
-│   │   ├── Shop.jsx
-│   │   ├── Blacksmith.jsx
-│   │   ├── DungeonSelect.jsx
-│   │   └── [Component].css
-│   └── store/
-│       ├── store.js       # Redux store config
-│       └── slices/
-│           ├── playerSlice.js
-│           ├── inventorySlice.js
-│           ├── battleSlice.js
-│           ├── dungeonSlice.js
-│           ├── shopSlice.js
-│           ├── blacksmithSlice.js
-│           └── prestigeSlice.js
-├── package.json
-├── vite.config.js
-└── README.md
-```
+Pembudidaya skala rumahan biasanya mencatat di buku atau tidak mencatat sama sekali, sehingga sulit menjawab pertanyaan sederhana:
 
----
+- Berapa ikan yang **masih hidup** di tiap ember/kolam?
+- Berapa **modal per ekor** (HPP) dan apakah harga jual sudah untung?
+- Siklus mana yang **rugi**, dan karena apa (banyak mati? pakan boros?)
+- Siapa pembeli yang **belum bayar**?
 
-## 🎯 Gameplay Systems
+Aplikasi ini mencatat semua kejadian harian per **siklus** (satu periode tebar sampai panen) dan menghitung angka-angka tersebut langsung dari data.
 
-### 1. **Class Selection**
-5 kelas dengan specialty berbeda:
-- **Knight** 🛡️ - Tank/Sustain
-- **Assassin** 🗡️ - Crit/Dodge
-- **Mage** 🔮 - Burst/AoE
-- **Archer** 🏹 - Rapid Attack
-- **Berserker** ⚡ - High Damage/Risk
+## Fitur
 
-### 2. **Combat System**
-- **Auto-battle** realtime dengan manual attack option
-- Damage calculation berdasarkan stats (STR, AGI, INT, VIT, LUCK)
-- Crit system dengan adjustable speed
-- Battle log untuk tracking damage
+| Modul | Fitur |
+|---|---|
+| **Auth** | Login JWT, register mandiri (akun baru menunggu aktivasi owner), profil user login |
+| **User** | Kelola user oleh owner, aktif/nonaktifkan akun, proteksi akun sendiri |
+| **Data master** | CRUD wadah (ember/terpal/kolam), jenis ikan, pakan — dengan soft delete |
+| **Siklus** | Buat siklus dengan **cek kapasitas wadah**, kode otomatis `SK-YYMMDD-id`, tutup & buka kembali siklus |
+| **Log pakan** | Catat pemberian pakan, biaya dihitung otomatis dengan **snapshot harga** pakan saat itu |
+| **Log kematian** | Catat ikan mati, siklus **otomatis ditutup** jika ikan hidup habis |
+| **Penjualan** | Jual per ekor via kanal (langsung/pasar/pengepul/online), konsumsi sendiri, status lunas/piutang |
+| **Pengeluaran** | Biaya per siklus maupun biaya umum (obat/probiotik, peralatan, utilitas, tenaga kerja) |
+| **Metrik siklus** | SR, total biaya, pendapatan, piutang, laba, **HPP per ekor**, margin |
+| **Dashboard** | Stok & kapasitas, keuangan, penjualan & margin per kanal, daftar piutang, siklus mendekati panen |
 
-### 3. **Loot System**
-- Random rarity drops (Common, Rare, Epic, Legendary, Mythic)
-- Loot dopamine dengan visual feedback
-- Drop rate bonus dari stats LUCK
-- Item auto-collected ke inventory
+## Tech Stack
 
-### 4. **Equipment System**
-- 9 equipment slots (Weapon, Armor, etc)
-- Randomized stats pada setiap item
-- Equipment rarity progression
-- Quick equip/unequip dari inventory
+| Bagian | Teknologi |
+|---|---|
+| Bahasa | Go 1.27 |
+| Web framework | Gin |
+| Database | PostgreSQL 16 (driver `pgx/v5`, tanpa ORM) |
+| Migrasi | golang-migrate (sequential up/down) |
+| Auth | JWT (`golang-jwt/jwt/v5`, HS256) + bcrypt |
+| Validasi | go-playground/validator (via Gin binding) |
+| Dokumentasi | Swagger (swaggo) |
+| Konkurensi | `golang.org/x/sync/errgroup` (query dashboard paralel) |
+| Lokal | Docker Compose (PostgreSQL), Makefile |
+| Production | Railway (aplikasi, build dari Dockerfile) + Neon (PostgreSQL, region Singapore) |
 
-### 5. **Refine System**
-- Refine level +1 hingga +15
-- Cost dan success rate meningkat tiap level
-- Downgrade risk di level tinggi (+11-15)
-- Material: Gold dan Refine Stone
+## Arsitektur
 
-### 6. **Shop/Merchant**
-- Random merchant slots yang refresh
-- Buy items dengan Gold
-- Refresh merchant dengan Fragment (✨)
-- Harga refresh meningkat setiap refresh
-
-### 7. **Dungeon Progression**
-- 3 dungeon dengan difficulty berbeda
-- Floor progression dengan enemy scaling
-- Max floor tracking per dungeon
-- Boss fight setiap 10 floor
-
-### 8. **Save System**
-- Auto-save dengan Redux-persist
-- LocalStorage persistence
-- Offline inventory/equipment management
-- Session save di browser memory
-
----
-
-## 💡 Core Game Loop
+**Layered Architecture** (Handler → Service → Repository) dengan **Repository Pattern** dan dependency injection lewat constructor.
 
 ```
-1. SELECT CLASS → 2. CHOOSE DUNGEON → 3. ENTER BATTLE
-    ↓ (Loop)
-4. AUTO COMBAT → 5. GET LOOT → 6. LEVEL UP
-    ↓
-7. NEXT FLOOR (atau DEATH/EXIT) → 8. INVENTORY MANAGEMENT
-    ↓
-9. SHOP → 10. BLACKSMITH (REFINE) → kembali ke step 1
+HTTP request
+   │
+   ▼
+Middleware     AuthRequired (JWT + cek status/role ke DB) → RequireRoles (RBAC)
+   │
+   ▼
+Handler        internal/handler     baca request, validasi format, kirim response
+   │
+   ▼
+Service        internal/service     aturan bisnis (tanggal, default nilai, own_use gratis, dst.)
+   │
+   ▼
+Repository     internal/repository  SQL, transaksi, row lock (SELECT ... FOR UPDATE)
+   │
+   ▼
+PostgreSQL     constraint, foreign key, trigger, view metrik
 ```
 
----
+Struktur folder:
 
-## 🎮 Game Controls
-
-### Battle Screen
-- **Attack Button** - Manual attack (saat auto off)
-- **Auto/Stop Button** - Toggle auto-battle
-- **Speed Slider** - Adjust battle speed (0.5x - 2.5x)
-- **Next Floor** - Lanjut ke floor berikutnya
-- **Exit Run** - Keluar dungeon
-
-### Navigation
-- **Tab Buttons** - Switch antar fitur
-- **Equipment Slots** - Click untuk equip/unequip
-- **Sort Buttons** - Sorting inventory (Recent, Rarity, Name)
-
----
-
-## 📊 Progression System
-
-### Player Stats
 ```
-STR (Strength)     → Physical Damage
-AGI (Agility)      → Attack Speed + Dodge
-INT (Intelligence) → Magic Damage
-VIT (Vitality)     → HP + Defense
-LUCK (Luck)        → Crit Chance + Drop Rate
+cmd/
+  main.go            entry point server (graceful shutdown)
+  seed/              seeder akun owner
+  seed-demo/         seeder data demo
+internal/
+  auth/              JWT manager
+  config/            baca konfigurasi dari environment
+  database/          koneksi pgxpool
+  handler/           HTTP handler + anotasi Swagger
+  middleware/        auth, RBAC
+  model/             struct entity, input, filter
+  repository/        akses database
+  response/          format response standar
+  router/            wiring dependency & routing
+  service/           aturan bisnis
+migrations/          file SQL migrasi (000001 – 000015)
+docs/swagger/        hasil generate Swagger
 ```
 
-### Level Up Progression
-- Exp untuk level up meningkat exponential (1.1x multiplier)
-- Level up memberikan +1-2 per stat
-- Max HP meningkat dengan VIT scaling
-- Tidak ada level cap
+## Skema Database
 
-### Prestige (Phase 2)
-- Reset semua tapi dapat Soul Point
-- Unlock Soul Tree untuk permanent buffs
-- EXP Bonus, Drop Rate, Damage, Merchant Luck
+9 tabel + 2 view. Semua uang disimpan sebagai `BIGINT` (rupiah, tanpa desimal).
 
----
+![ERD](docs/erd.png)
 
-## ⚙️ Tech Stack
+| Tabel | Isi | Relasi |
+|---|---|---|
+| `users` | Akun owner & worker | Dirujuk oleh `created_by` di 5 tabel transaksi |
+| `ponds` | Wadah: ember, terpal, kolam | 1 → N `cycles` |
+| `fish_species` | Jenis ikan, target hari panen, harga default | 1 → N `cycles` |
+| `feeds` | Jenis pakan & harga per kg | 1 → N `feed_logs` |
+| `cycles` | Satu periode tebar sampai panen | N → 1 ponds, fish_species, users |
+| `feed_logs` | Pemberian pakan harian | N → 1 cycles, feeds, users |
+| `mortality_logs` | Ikan mati | N → 1 cycles, users |
+| `sales` | Penjualan & konsumsi sendiri | N → 1 cycles, users |
+| `expenses` | Pengeluaran (per siklus atau umum) | N → 0..1 cycles, N → 1 users |
 
-### Frontend
-- **React 18** - UI Framework
-- **Redux Toolkit** - State Management
-- **Redux-Persist** - Local Storage Persistence
-- **Vite** - Build tool
-- **Tailwind CSS** - Styling (via custom CSS)
+| View | Isi |
+|---|---|
+| `v_cycle_status` | `initial_qty`, `dead_qty`, `sold_qty`, `alive_qty` per siklus |
+| `v_cycle_metrics` | Biaya bibit/pakan/lain, pendapatan, piutang, laba, SR, HPP, margin per siklus |
 
-### PWA
-- **Service Worker** - Offline capability
-- **Web App Manifest** - Installation
-- **LocalStorage** - Data persistence
+## Aturan Bisnis
 
-### Performance
-- < 150MB RAM browser
-- 60fps target on mobile
-- Fast loading dengan code splitting
+| Kode | Aturan | Dijaga di |
+|---|---|---|
+| R01 | Jumlah ikan hidup di satu wadah tidak boleh melebihi `max_stock` | Repository (row lock wadah) |
+| R02 | Jumlah mati/terjual tidak boleh melebihi ikan hidup | Repository (row lock siklus) |
+| R03 | Biaya pakan = gram ÷ 1000 × harga/kg, harga **disalin** saat dicatat | Repository + kolom `price_per_kg` |
+| R04 | Siklus tertutup bersifat read-only (kecuali tandai lunas) | Repository |
+| R05 | Siklus otomatis ditutup saat ikan hidup = 0 | Repository (log kematian & penjualan) |
+| R06 | Total penjualan dihitung server: `qty × price_per_fish` | Service + CHECK constraint |
+| R07 | Konsumsi sendiri (`own_use`) selalu gratis dan tanpa kanal | Service + CHECK constraint |
 
----
+Rumus metrik:
 
-## 🔧 Development Guide
+| Metrik | Rumus |
+|---|---|
+| Survival rate | (awal − mati) ÷ awal × 100% |
+| Total biaya | bibit + pakan + pengeluaran siklus |
+| HPP per ekor | total biaya ÷ (awal − mati) |
+| Laba | pendapatan − total biaya |
+| Margin | laba ÷ pendapatan × 100% |
 
-### Adding New Features
+Selama siklus masih aktif, metrik bersifat sementara (`is_final: false`).
 
-#### 1. New Dungeon
-```javascript
-// dungeonSlice.js
-dungeons: {
-  new_dungeon: {
-    name: 'Name',
-    theme: 'Theme',
-    maxFloors: 100,
-    currentFloor: 1,
-    maxReachedFloor: 1,
-  }
+## Autentikasi & Role
+
+1. Login di `POST /api/users/login` (atau `/api/v1/users/login`) → mendapat token JWT (berlaku 24 jam).
+2. Kirim token di header: `Authorization: Bearer <token>`.
+3. Di setiap request, middleware memverifikasi token **dan** membaca status & role terbaru dari database — user yang dinonaktifkan atau diturunkan role-nya langsung kehilangan akses tanpa menunggu token kedaluwarsa.
+
+| Role | Hak akses |
+|---|---|
+| **owner** | Semua fitur, termasuk data master, user, metrik keuangan, dashboard |
+| **worker** | Melihat data, mencatat pakan, kematian, dan penjualan. Tidak bisa mengubah data master, user, pengeluaran, atau melihat metrik keuangan |
+
+**Register:** akun hasil register selalu menjadi `worker` dengan status **nonaktif**, dan baru bisa login setelah diaktifkan owner (`PATCH /users/:id/status`). Field `role` di body register diabaikan.
+
+**Akun demo (production):**
+
+| Role | Email |
+|---|---|
+| Owner | `owner@budikdamber.local` |
+| Worker | `pekerja@budikdamber.local` |
+
+Password dibagikan terpisah kepada trainer.
+
+## Daftar Endpoint
+
+Base URL: `/api/v1` (kecuali disebutkan lain). Detail body & response ada di Swagger.
+
+### Publik
+
+| Method | Path | Keterangan |
+|---|---|---|
+| GET | `/health` | Status aplikasi & database |
+| GET | `/swagger/index.html` | Dokumentasi Swagger |
+| POST | `/api/users/login` | Login (path sesuai ketentuan final project) |
+| POST | `/api/users/register` | Register |
+| POST | `/api/v1/users/login` | Login |
+| POST | `/api/v1/users/register` | Register (akun nonaktif, menunggu owner) |
+
+### Auth & User
+
+| Method | Path | Role | Keterangan |
+|---|---|---|---|
+| GET | `/auth/me` | semua | Profil user yang sedang login |
+| GET | `/users` | owner | Daftar user (filter `search`, paginasi) |
+| GET | `/users/:id` | owner | Detail user |
+| POST | `/users` | owner | Buat user (owner/worker), langsung aktif |
+| PUT | `/users/:id` | owner | Ubah user, termasuk reset password |
+| PATCH | `/users/:id/status` | owner | Aktif/nonaktifkan user |
+
+### Data Master
+
+| Method | Path | Role |
+|---|---|---|
+| GET | `/ponds`, `/ponds/:id` | semua |
+| POST · PUT · DELETE | `/ponds`, `/ponds/:id` | owner |
+| GET | `/fish-species`, `/fish-species/:id` | semua |
+| POST · PUT · DELETE | `/fish-species`, `/fish-species/:id` | owner |
+| GET | `/feeds`, `/feeds/:id` | semua |
+| POST · PUT · DELETE | `/feeds`, `/feeds/:id` | owner |
+
+DELETE bersifat soft delete. Filter list: `search`, `page`, `limit` (wadah juga `type`, `is_active`).
+
+### Siklus
+
+| Method | Path | Role | Keterangan |
+|---|---|---|---|
+| GET | `/cycles` | semua | Filter `status`, `pond_id`, `species_id` |
+| GET | `/cycles/:id` | semua | Detail + jumlah hidup/mati/terjual + umur siklus |
+| POST | `/cycles` | owner | Buat siklus (cek kapasitas wadah) |
+| POST | `/cycles/:id/close` | owner | Tutup manual (`end_date` opsional, default hari ini) |
+| POST | `/cycles/:id/reopen` | owner | Buka kembali (cek ulang kapasitas) |
+| GET | `/cycles/:id/metrics` | owner | SR, biaya, pendapatan, laba, HPP, margin |
+
+### Log Harian & Penjualan
+
+| Method | Path | Role | Keterangan |
+|---|---|---|---|
+| GET | `/cycles/:id/feed-logs` | semua | Filter `date_from`, `date_to` |
+| POST | `/cycles/:id/feed-logs` | semua | Catat pakan |
+| DELETE | `/feed-logs/:id` | owner | Hapus log (hanya siklus aktif) |
+| GET | `/cycles/:id/mortality-logs` | semua | Filter tanggal |
+| POST | `/cycles/:id/mortality-logs` | semua | Catat ikan mati (auto-close jika habis) |
+| DELETE | `/mortality-logs/:id` | owner | Hapus log (hanya siklus aktif) |
+| GET | `/cycles/:id/sales` | semua | Filter tanggal, `sale_type`, `is_paid` |
+| POST | `/cycles/:id/sales` | semua | Catat penjualan / konsumsi sendiri |
+| PATCH | `/sales/:id/paid` | owner | Tandai lunas / belum (boleh setelah siklus ditutup) |
+| DELETE | `/sales/:id` | owner | Hapus penjualan (hanya siklus aktif) |
+
+### Pengeluaran & Dashboard
+
+| Method | Path | Role | Keterangan |
+|---|---|---|---|
+| GET | `/expenses`, `/expenses/:id` | semua | Filter `cycle_id`, `general_only`, `category`, tanggal |
+| POST · PUT · DELETE | `/expenses`, `/expenses/:id` | owner | Kategori: `obat_probiotik`, `peralatan`, `utilitas`, `tenaga_kerja`, `lainnya` |
+| GET | `/dashboard` | owner | Ringkasan usaha; filter `date_from`, `date_to` untuk penjualan per kanal |
+
+## Format Response
+
+Semua endpoint memakai format yang sama:
+
+```json
+{
+  "success": true,
+  "message": "berhasil mengambil daftar wadah",
+  "data": [ ... ],
+  "meta": { "page": 1, "limit": 10, "total": 3, "total_pages": 1 }
 }
 ```
 
-#### 2. New Item/Equipment
-```javascript
-// Modify SHOP_ITEMS atau generateLoot
-const newItem = {
-  name: 'Item Name',
-  rarity: 'rare',
-  type: 'equipment',
-  stats: {
-    attack: 10,
-    defense: 5,
-  }
+Error validasi menyertakan detail per field:
+
+```json
+{
+  "success": false,
+  "message": "validasi gagal",
+  "errors": { "start_date": "format tanggal harus YYYY-MM-DD" }
 }
 ```
 
-#### 3. New Skill/Ability
-```javascript
-// Create new battle logic
-const skill = {
-  name: 'Skill Name',
-  damage: baseDamage * multiplier,
-  cooldown: 5000,
-  effect: 'effect description'
-}
-```
+| Status | Arti |
+|---|---|
+| 400 | Input tidak valid / melanggar aturan bisnis |
+| 401 | Token tidak ada, tidak valid, kedaluwarsa, atau akun nonaktif |
+| 403 | Role tidak punya akses, atau akun belum diaktifkan (saat login) |
+| 404 | Data tidak ditemukan |
+| 409 | Konflik: nama/email sudah dipakai, kapasitas penuh, melebihi ikan hidup, siklus sudah ditutup |
+| 500 | Kesalahan server |
 
-### Modifying Game Balance
+## Cara Pakai (Alur Demo)
 
-```javascript
-// battle.js - Enemy scaling
-const baseHp = 20 + floor * 5;        // Adjust multiplier
-const baseDamage = 3 + floor * 1.5;   // Adjust scaling
+Contoh dengan `curl` ke production. Ganti `BASE` untuk lokal (`http://localhost:8080`).
 
-// Battle.jsx - Loot chance
-if (roll < 0.6) rarity = 'common';    // Adjust drop rates
-else if (roll < 0.85) rarity = 'rare';
-```
-
----
-
-## 📱 PWA Installation
-
-### Desktop (Chrome, Edge)
-1. Buka game di browser
-2. Click "Install" di address bar
-3. Atau klik menu → "Install app"
-
-### Mobile iOS
-1. Buka di Safari
-2. Click Share → "Add to Home Screen"
-3. Beri nama dan install
-
-### Mobile Android
-1. Buka di Chrome
-2. Click menu → "Install app"
-3. Atau tap install prompt di bottom
-
----
-
-## 🐛 Debugging
-
-### Redux DevTools
-```javascript
-// Akan terintegrasi dengan Redux DevTools extension jika installed
-// Lihat state di: chrome://extensions → Redux DevTools
-```
-
-### LocalStorage Check
-```javascript
-// Browser Console
-localStorage.getItem('persist:root')  // Cek stored state
-Object.keys(localStorage)             // List semua storage keys
-```
-
-### Service Worker Debug
-```javascript
-// Chrome DevTools → Application → Service Workers
-// Lihat registered SW dan cache storage
-```
-
----
-
-## 📈 Performance Optimization
-
-### Already Implemented
-- ✅ Lazy loading components
-- ✅ Memoized selectors
-- ✅ CSS-only animations
-- ✅ Efficient re-renders
-- ✅ Service Worker caching
-
-### Future Optimization
-- Code splitting per route
-- Image optimization
-- WebP format support
-- Progressive JPEG loading
-- Bundle analysis
-
----
-
-## 🎨 Customization
-
-### Colors (CSS Variables)
-Edit di `App.css`:
-```css
-:root {
-  --color-primary: #00d4ff;        /* Cyan */
-  --color-accent: #ff006e;         /* Pink */
-  --color-accent-alt: #ffd60a;     /* Yellow */
-  /* ... more colors */
-}
-```
-
-### Fonts
-```css
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Pixelify+Sans:wght@400;600;700&display=swap');
-```
-
-### Animations
-Semua animations di `App.css` dengan CSS keyframes
-
----
-
-## 📝 MVP Features (Phase 1)
-
-✅ **Completed:**
-- 2+ class options (5 kelas)
-- 1 main dungeon (3 dungeons)
-- 30+ floor progression
-- Auto combat system
-- Loot mechanics
-- Inventory system
-- Equipment system
-- Refine system
-- Merchant shop
-- Blacksmith
-- Save/Load system
-- Responsive design
-- PWA functionality
-
-### Phase 2 (Planned)
-- Rune system
-- Relic system
-- Prestige system
-- Element system
-- Set items
-- Advanced events
-
-### Phase 3 (Planned)
-- Endless tower
-- Daily modifier
-- Advanced AI
-- Seasonal events
-- Leaderboard
-
----
-
-## 🚀 Deployment
-
-### Deploy ke Vercel (Recommended)
 ```bash
-npm i -g vercel
-vercel
+BASE=https://budikdamber-farm-manager-production.up.railway.app
+
+# 1. Login owner → simpan token
+TOKEN=$(curl -s -X POST $BASE/api/users/login -H 'Content-Type: application/json' \
+  -d '{"email":"owner@budikdamber.local","password":"<password>"}' | jq -r '.data.token')
+
+# 2. Lihat dashboard
+curl -s $BASE/api/v1/dashboard -H "Authorization: Bearer $TOKEN" | jq '.data'
+
+# 3. Buat siklus baru: 45 ekor lele di wadah id 1
+curl -s -X POST $BASE/api/v1/cycles -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"pond_id":1,"species_id":1,"start_date":"2026-10-19","initial_qty":45,"seed_price_per_fish":500}' | jq
+
+# 4. Catat pakan 100 gram
+curl -s -X POST $BASE/api/v1/cycles/<id>/feed-logs -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"feed_id":1,"log_date":"2026-10-19","qty_gram":100}' | jq
+
+# 5. Jual 10 ekor ke pasar (harga default jenis ikan)
+curl -s -X POST $BASE/api/v1/cycles/<id>/sales -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"sale_date":"2026-10-19","channel":"pasar","qty":10}' | jq
+
+# 6. Lihat metrik siklus
+curl -s $BASE/api/v1/cycles/<id>/metrics -H "Authorization: Bearer $TOKEN" | jq '.data'
 ```
 
-### Deploy ke Netlify
+Atau lebih mudah lewat **Swagger**: klik **Authorize**, isi `Bearer <token>`, lalu coba endpoint satu per satu.
+
+## Menjalankan di Lokal
+
+**Prasyarat:** Go 1.27, Docker Desktop, [golang-migrate CLI](https://github.com/golang-migrate/migrate), `make`, `jq` (opsional).
+
 ```bash
-# Build dulu
-npm run build
+# 1. Clone & siapkan environment
+git clone https://github.com/AgungRilo/budikdamber-farm-manager.git
+cd budikdamber-farm-manager
+cp .env.example .env          # isi JWT_SECRET (≥ 32 karakter) & password seeder
 
-# Upload dist folder ke Netlify
-# Atau connect GitHub repo
+# 2. Jalankan PostgreSQL (Docker, port 5433)
+make docker-up
+
+# 3. Migrasi + akun owner + data demo
+make migrate-up
+make seed
+make seed-demo
+
+# 4. Jalankan server
+make run                      # http://localhost:8080/swagger/index.html
 ```
 
-### Deploy ke GitHub Pages
-```bash
-npm run build
-# Upload dist ke gh-pages branch
+Variabel environment (`.env`):
+
+| Variabel | Keterangan |
+|---|---|
+| `DATABASE_URL` | Koneksi PostgreSQL lokal |
+| `PORT` | Port server (default 8080) |
+| `APP_ENV` | `development` / `production` |
+| `JWT_SECRET` | Rahasia penandatangan JWT, minimal 32 karakter |
+| `JWT_EXPIRES_IN` | Masa berlaku token, contoh `24h` |
+| `SEED_OWNER_NAME`, `SEED_OWNER_EMAIL`, `SEED_OWNER_PASSWORD` | Akun owner dari seeder |
+| `SEED_WORKER_PASSWORD` | Password akun worker demo |
+
+Perintah Makefile yang sering dipakai:
+
+| Perintah | Fungsi |
+|---|---|
+| `make run` | Jalankan server |
+| `make test` | Jalankan unit test |
+| `make swag` | Generate ulang dokumentasi Swagger |
+| `make migrate-up` / `migrate-down` | Naik / turun 1 versi migrasi |
+| `make migrate-create name=xxx` | Buat file migrasi baru |
+| `make seed` / `seed-demo` | Buat akun owner / data demo |
+| `make db-reset` | Kosongkan & isi ulang DB **lokal** |
+
+## Deployment
+
+```
+GitHub (main) ──push──▶ Railway (build Dockerfile, region Southeast Asia) ──▶ Neon PostgreSQL (Singapore)
 ```
 
----
+- Aplikasi dibangun dengan **Dockerfile multi-stage** (binary statis di image Alpine).
+- Konfigurasi production lewat environment variable di Railway (`DATABASE_URL`, `JWT_SECRET`, `APP_ENV=production`, dst.).
+- Migrasi production dijalankan dari lokal: `make migrate-up-prod`.
 
-## 🐛 Known Issues & Limitations
+## Keputusan Desain
 
-1. **Offline Mode** - Combat hanya semi-offline, perlu koneksi untuk beberapa fitur
-2. **Mobile Zoom** - Zoom disabled untuk prevent UI breaking
-3. **Screen Orientation** - Best at portrait untuk mobile
-4. **Storage Limit** - LocalStorage ~10MB limit
+- **Tanpa ORM (pgx + SQL langsung):** transaksi, `SELECT ... FOR UPDATE`, view, dan query agregasi lebih mudah dikendalikan dan dibaca.
+- **Row lock untuk konsistensi:** pembuatan siklus mengunci baris wadah; log kematian & penjualan mengunci baris siklus — dua request bersamaan tidak bisa sama-sama lolos cek kapasitas / sisa ikan.
+- **Aturan dijaga dua lapis:** di Go *dan* di database (CHECK, FK, unique index), misalnya `total = qty × price_per_fish`.
+- **Snapshot harga pakan:** biaya historis tidak berubah ketika harga pakan naik.
+- **Log tidak bisa diedit, hanya tambah/hapus:** jejak catatan harian lebih jelas.
+- **Soft delete** pada data master agar data historis siklus tetap utuh.
+- **Tanggal "hari ini" memakai WIB**, bukan zona waktu server (Railway/Neon memakai UTC).
+- **Dashboard memakai goroutine (errgroup):** 5 query independen dijalankan paralel; tiap goroutine menulis ke field berbeda sehingga bebas data race.
+- **Pengeluaran tidak punya kategori pakan/bibit:** keduanya sudah tercatat di log pakan & siklus, sehingga HPP tidak terhitung dobel.
 
----
+## Keterbatasan & Pengembangan Berikutnya
 
-## 💬 Game Tips for Players
-
-1. **Early Game** - Focus farming gold untuk equipment
-2. **Mid Game** - Refine equipment untuk stat boost
-3. **Loot Priority** - Rare+ item lebih valuable
-4. **Floor Progression** - Setiap floor 10x lebih sulit
-5. **Merchant Luck** - Sering refresh shop untuk item bagus
-6. **Equipment Balance** - Mix stat untuk optimal build
-
----
-
-## 📚 Resources & References
-
-### Redux Documentation
-- https://redux-toolkit.js.org/
-- https://react-redux.js.org/
-
-### PWA Best Practices
-- https://web.dev/progressive-web-apps/
-- https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps
-
-### React Docs
-- https://react.dev
-
-### Vite Guide
-- https://vitejs.dev/
+- Logout berbasis server (token revocation) belum ada; token kedaluwarsa dalam 24 jam, dan akun nonaktif langsung ditolak.
+- Belum ada fitur ganti password mandiri & lupa password via email (reset dilakukan owner).
+- Notifikasi pengingat (pakan, piutang, jadwal panen) via penjadwal + bot Telegram.
+- Log kualitas air & sampling pertumbuhan untuk menghitung FCR.
+- Unit test layer service dengan interface repository.
 
 ---
 
-## 📄 License
-
-MIT License - Feel free to use, modify, dan distribute
-
----
-
-## 🎉 Credits
-
-Created with ❤️ for the roguelite gaming community.
-
-**Abyss Hunter** - Where every run matters, and dopamine never stops.
-
----
-
-## 📞 Support & Feedback
-
-Found a bug? Have a feature request?
-- Open an issue
-- Submit feedback
-- Join the community
-
-**Happy hunting!** ⚔️✨
+Dibuat oleh **Agung Rilo Pambudi** — Final Project Bootcamp Golang SanberCode, Oktober 2026.
