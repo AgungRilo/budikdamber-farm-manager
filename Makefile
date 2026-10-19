@@ -112,3 +112,8 @@ db-reset:
 	$(MAKE) migrate-up
 	$(MAKE) seed
 	$(MAKE) seed-demo
+
+
+	## reset-owner-password-prod: samakan password owner di production dengan PROD_SEED_OWNER_PASSWORD
+reset-owner-password-prod:
+	@DATABASE_URL="$(PROD_DATABASE_URL)" RESET_EMAIL="$(SEED_OWNER_EMAIL)" RESET_PASSWORD="$(PROD_SEED_OWNER_PASSWORD)" go run ./cmd/reset-password
