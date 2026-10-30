@@ -76,43 +76,56 @@ func (r *MortalityLogRepository) FindByID(ctx context.Context, id int64) (*model
 }
 
 func (r *MortalityLogRepository) Create(ctx context.Context, cycleID int64, in model.MortalityLogInput, createdBy int64) (*model.MortalityCreateResult, error) {
+	// Mulai transaksi: insert log dan tutup siklus harus berhasil bersama atau gagal bersama.
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
+	// Kalau fungsi keluar sebelum Commit (ada error), semua perubahan dibatalkan.
+	// Setelah Commit, Rollback ini tidak berpengaruh apa-apa.
 	defer tx.Rollback(ctx)
 
 	// R02: kunci baris siklus dulu. Request lain untuk siklus yang sama
 	// harus menunggu sampai transaksi ini selesai, jadi hitungan "sisa hidup" aman.
+	// Sekalian memastikan siklus ada dan masih active, lalu mengambil tanggal tebar.
 	start, err := lockActiveCycle(ctx, tx, cycleID)
 	if err != nil {
 		return nil, err
 	}
+	// Format tanggal sudah divalidasi di layer handler, jadi error parse diabaikan.
 	logDate, _ := time.Parse("2006-01-02", in.LogDate)
+	// Ikan tidak mungkin mati sebelum ditebar.
 	if logDate.Before(start) {
 		return nil, ErrLogBeforeStart
 	}
 
+	// Ambil jumlah ikan yang masih hidup dari view (tebar - mati - terjual).
+	// Dibaca setelah lock, jadi angkanya tidak bisa berubah oleh request lain.
 	var alive int64
 	if err := tx.QueryRow(ctx,
 		`SELECT alive_qty FROM v_cycle_status WHERE cycle_id = $1`, cycleID).Scan(&alive); err != nil {
 		return nil, err
 	}
+	// Jumlah mati tidak boleh melebihi sisa hidup, supaya stok tidak minus.
 	if int64(in.Qty) > alive {
 		return nil, &AliveExceededError{Requested: in.Qty, Alive: alive}
 	}
 
+	// Simpan log kematian; nilai dikirim lewat placeholder ($1..$6), bukan disambung ke SQL.
 	var id int64
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO mortality_logs (cycle_id, log_date, qty, cause, notes, created_by)
 		VALUES ($1, $2::date, $3, $4, $5, $6)
 		RETURNING id`,
 		cycleID, in.LogDate, in.Qty, in.Cause, in.Notes, createdBy).Scan(&id); err != nil {
+		// Ubah error PostgreSQL (misalnya pelanggaran constraint) jadi error yang dipahami service.
 		return nil, translatePgError(err)
 	}
 
 	// R05: semua ikan habis → siklus otomatis ditutup.
+	// Sisa hidup setelah log ini, dikembalikan juga ke client di response.
 	remaining := alive - int64(in.Qty)
+	// Penanda untuk response: apakah request ini ikut menutup siklus.
 	closed := false
 	if remaining == 0 {
 		// if _, err := tx.Exec(ctx,
@@ -122,6 +135,8 @@ func (r *MortalityLogRepository) Create(ctx context.Context, cycleID int64, in m
 		// }
 		// closed = true
 		if remaining == 0 {
+			// Tutup siklus di transaksi yang sama, dengan end_date = tanggal log
+			// dan closed_by = user yang mencatat.
 			if err := closeCycle(ctx, tx, cycleID, in.LogDate, createdBy); err != nil {
 				return nil, err
 			}
@@ -129,13 +144,16 @@ func (r *MortalityLogRepository) Create(ctx context.Context, cycleID int64, in m
 		}
 	}
 
+	// Simpan permanen semua perubahan dan lepas lock siklus.
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
+	// Baca ulang log lengkap (termasuk nama pencatat dari JOIN users) untuk response.
 	l, err := r.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
+	// Kembalikan log beserta sisa hidup dan status apakah siklus ikut ditutup.
 	return &model.MortalityCreateResult{MortalityLog: *l, AliveQtyAfter: remaining, CycleClosed: closed}, nil
 }
 
